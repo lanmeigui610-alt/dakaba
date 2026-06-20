@@ -12,7 +12,7 @@
     "@supabase/supabase-js": "^2.45.4",
     "browser-image-compression": "^2.0.2",
     "html2canvas": "^1.4.1",
-    "lucide-vue-next": "^0.468.0",
+    "@lucide/vue": "^1.21.0",
     "pinia": "^2.2.6",
     "vue": "^3.5.13",
     "vue-router": "^4.4.5"
