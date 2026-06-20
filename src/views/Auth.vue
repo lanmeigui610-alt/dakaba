@@ -109,6 +109,8 @@ async function submit() {
       errorMessage.value = '当前 Supabase 可能没有开启手机号登录。请先用邮箱注册/登录，或去 Supabase 开启 Phone Auth。'
     } else if (/Invalid login credentials/i.test(message)) {
       errorMessage.value = '账号或密码不正确。'
+    } else if (/Failed to fetch|fetch|取物失败|Load failed|NetworkError/i.test(message)) {
+      errorMessage.value = '连接 Supabase 失败。请检查网络是否能访问 Supabase，或者确认 Vercel 环境变量 VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY 已填写。'
     } else {
       errorMessage.value = message
     }

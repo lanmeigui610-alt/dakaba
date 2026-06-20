@@ -7,15 +7,18 @@ export async function signUpWithPhone({ phone, password, nickname, securityQuest
   const { data, error } = await supabase.auth.signUp(credentials)
   if (error) throw error
   if (data.user) {
-    await supabase.from('profiles').upsert({
+    const { error: profileError } = await supabase.from('profiles').upsert({
       id: data.user.id,
       nickname,
     })
-    await supabase.from('account_recovery').upsert({
+    if (profileError) console.warn('profile upsert skipped:', profileError.message)
+
+    const { error: recoveryError } = await supabase.from('account_recovery').upsert({
       user_id: data.user.id,
       security_question: securityQuestion,
       security_answer_hash: securityAnswer.trim().toLowerCase(),
     })
+    if (recoveryError) console.warn('account recovery upsert skipped:', recoveryError.message)
   }
   return data
 }
