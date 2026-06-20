@@ -13,8 +13,55 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #101114;
+  background: #08090b;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-shell {
+  position: relative;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(82, 210, 115, .16), transparent 30vw),
+    radial-gradient(circle at 82% 12%, rgba(56, 189, 248, .16), transparent 26vw),
+    linear-gradient(145deg, #f4f0e8 0%, #eef6f3 46%, #f8fbff 100%);
+}
+
+.dark .app-shell {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(82, 210, 115, .16), transparent 30vw),
+    radial-gradient(circle at 82% 12%, rgba(56, 189, 248, .17), transparent 28vw),
+    linear-gradient(145deg, #090a0d 0%, #141720 46%, #090a0d 100%);
+}
+
+.ambient {
+  pointer-events: none;
+  position: fixed;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(28px);
+  opacity: .35;
+  animation: floaty 9s ease-in-out infinite;
+}
+
+.ambient-a {
+  left: -80px;
+  top: 80px;
+  height: 180px;
+  width: 180px;
+  background: #52d273;
+}
+
+.ambient-b {
+  right: -90px;
+  top: 190px;
+  height: 220px;
+  width: 220px;
+  background: #38bdf8;
+  animation-delay: -4s;
 }
 
 .pixelated {
@@ -22,13 +69,60 @@ body {
 }
 
 .card {
-  @apply rounded-lg border border-black/10 bg-white/[.92] p-4 shadow-soft dark:border-white/10 dark:bg-zinc-900/[.92];
+  @apply rounded-lg border border-black/10 bg-white/[.80] p-4 shadow-soft backdrop-blur-xl dark:border-white/10 dark:bg-zinc-900/[.76];
 }
 
 .tap {
-  @apply active:scale-[.98] transition;
+  @apply active:scale-[.98] transition duration-200;
 }
 
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom) + 76px);
+}
+
+.safe-bottom,
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.mode-desktop main {
+  max-width: 1120px;
+}
+
+.mode-mobile main {
+  max-width: 448px;
+}
+
+@media (min-width: 900px) {
+  .mode-auto main {
+    max-width: 1120px;
+  }
+
+  .mode-auto .safe-bottom,
+  .mode-desktop .safe-bottom {
+    padding-bottom: 32px;
+  }
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(18px, -18px, 0) scale(1.06); }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.card,
+header,
+section {
+  animation: rise-in .42s ease both;
 }

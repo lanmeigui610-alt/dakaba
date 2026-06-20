@@ -124,6 +124,30 @@ create policy "users insert own profile"
 on public.profiles for insert to authenticated
 with check (auth.uid() = id);
 
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, nickname)
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'nickname', '哒咔用户'))
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+
+insert into public.profiles (id, nickname)
+select id, coalesce(raw_user_meta_data ->> 'nickname', '哒咔用户')
+from auth.users
+on conflict (id) do nothing;
+
 create policy "public moments visible and private only owner"
 on public.moments for select to authenticated
 using (visibility = 'public' or user_id = auth.uid());

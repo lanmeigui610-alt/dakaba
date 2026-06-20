@@ -5,13 +5,28 @@ const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://dakaba.vercel.app'
 
 export async function compressImages(files) {
   const options = {
-    maxSizeMB: 0.48,
-    maxWidthOrHeight: 1600,
+    maxSizeMB: 0.45,
+    maxWidthOrHeight: 1400,
     useWebWorker: true,
     fileType: 'image/webp',
-    initialQuality: 0.82,
+    initialQuality: 0.76,
   }
-  return Promise.all(Array.from(files).map((file) => imageCompression(file, options)))
+  const compressed = []
+  for (const file of Array.from(files)) {
+    if (file.type === 'image/gif') {
+      if (file.size > 500 * 1024) {
+        throw new Error('GIF 不能超过 500KB。请换一张更小的 GIF，或先用图片发布。')
+      }
+      compressed.push(file)
+      continue
+    }
+    const result = await imageCompression(file, options)
+    if (result.size > 500 * 1024) {
+      throw new Error(`图片 ${file.name} 压缩后仍超过 500KB，请换一张更小的图片。`)
+    }
+    compressed.push(result)
+  }
+  return compressed
 }
 
 export async function uploadMomentImages(files) {
@@ -19,12 +34,15 @@ export async function uploadMomentImages(files) {
   const compressed = await compressImages(files)
   const urls = []
   for (const file of compressed) {
-    const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.webp`
+    const isGif = file.type === 'image/gif'
+    const path = `${user.id}/${Date.now()}-${crypto.randomUUID()}.${isGif ? 'gif' : 'webp'}`
     const { error } = await supabase.storage.from('moment-media').upload(path, file, {
-      contentType: 'image/webp',
+      contentType: isGif ? 'image/gif' : 'image/webp',
       upsert: false,
     })
-    if (error) throw error
+    if (error) {
+      throw new Error(`图片上传失败：${error.message || '请确认 Supabase Storage 已创建 moment-media bucket，并执行了 RLS 策略。'}`)
+    }
     const { data } = supabase.storage.from('moment-media').getPublicUrl(path)
     urls.push(data.publicUrl)
   }
@@ -47,7 +65,7 @@ export async function createMoment({ body, mediaFiles, visibility, mood, tags })
     })
     .select('*, profiles(nickname, avatar_url)')
     .single()
-  if (error) throw error
+  if (error) throw new Error(`动态发布失败：${error.message}`)
   return data
 }
 

@@ -1,6 +1,8 @@
 <template>
-  <div :class="{ dark: settings.theme === 'dark' }">
-    <div class="min-h-screen bg-paper text-zinc-950 dark:bg-ink dark:text-zinc-50">
+  <div :class="[{ dark: settings.theme === 'dark' }, `mode-${settings.displayMode}`]">
+    <div class="app-shell min-h-screen text-zinc-950 dark:text-zinc-50">
+      <div class="ambient ambient-a"></div>
+      <div class="ambient ambient-b"></div>
       <RouterView />
     </div>
   </div>

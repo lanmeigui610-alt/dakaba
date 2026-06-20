@@ -1,7 +1,10 @@
 import { supabase, requireUser } from '../lib/supabase'
 
 export async function signUpWithPhone({ phone, password, nickname, securityQuestion, securityAnswer }) {
-  const { data, error } = await supabase.auth.signUp({ phone, password })
+  const credentials = phone.includes('@')
+    ? { email: phone, password, options: { data: { nickname } } }
+    : { phone, password, options: { data: { nickname } } }
+  const { data, error } = await supabase.auth.signUp(credentials)
   if (error) throw error
   if (data.user) {
     await supabase.from('profiles').upsert({
@@ -18,7 +21,8 @@ export async function signUpWithPhone({ phone, password, nickname, securityQuest
 }
 
 export async function signInWithPhone({ phone, password }) {
-  const { data, error } = await supabase.auth.signInWithPassword({ phone, password })
+  const credentials = phone.includes('@') ? { email: phone, password } : { phone, password }
+  const { data, error } = await supabase.auth.signInWithPassword(credentials)
   if (error) throw error
   return data
 }

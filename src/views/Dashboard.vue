@@ -1,10 +1,10 @@
 ﻿<template>
-  <main class="safe-bottom mx-auto max-w-md px-4 py-5">
-    <header class="mb-5 rounded-b-[28px] bg-zinc-950 px-4 pb-5 pt-4 text-white shadow-soft dark:bg-black">
+  <main class="safe-bottom mx-auto px-4 py-5 lg:px-8">
+    <header class="mb-5 overflow-hidden rounded-[28px] bg-zinc-950 px-5 pb-5 pt-5 text-white shadow-soft dark:bg-black lg:px-7">
       <div class="flex items-start justify-between">
         <div>
           <p class="text-sm text-zinc-400">DakaBa</p>
-          <h1 class="mt-1 text-3xl font-black tracking-normal">哒咔Ba</h1>
+          <h1 class="mt-1 text-4xl font-black tracking-normal lg:text-6xl">哒咔Ba</h1>
           <p class="mt-2 text-sm text-zinc-300">打卡、数日、待办、日记和朋友圈都在这里。</p>
         </div>
         <RouterLink to="/profile" class="tap h-12 w-12 overflow-hidden rounded-lg border border-white/15 bg-white/10">
@@ -28,57 +28,74 @@
       </div>
     </header>
 
-    <section class="mb-4 grid grid-cols-4 gap-3">
-      <RouterLink v-for="item in featureGrid" :key="item.title" :to="item.to" class="tap rounded-lg border border-black/10 bg-white p-3 text-center shadow-sm dark:border-white/10 dark:bg-zinc-900">
-        <component :is="item.icon" class="mx-auto h-6 w-6" :class="item.color" />
-        <span class="mt-2 block text-xs font-semibold">{{ item.title }}</span>
-      </RouterLink>
-    </section>
+    <div class="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
+      <div>
+        <section class="mb-4 grid grid-cols-4 gap-3 lg:grid-cols-4">
+          <RouterLink v-for="item in featureGrid" :key="item.title" :to="item.to" class="tap rounded-2xl border border-black/10 bg-white/80 p-3 text-center shadow-sm backdrop-blur-xl hover:-translate-y-1 hover:shadow-soft dark:border-white/10 dark:bg-zinc-900/80">
+            <component :is="item.icon" class="mx-auto h-6 w-6" :class="item.color" />
+            <span class="mt-2 block text-xs font-semibold">{{ item.title }}</span>
+          </RouterLink>
+        </section>
 
-    <section class="card mb-4">
-      <div class="mb-3 flex items-center justify-between">
-        <div>
-          <h2 class="font-bold">今日打卡任务</h2>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">适合习惯、学习、运动、喝水等重复打卡</p>
-        </div>
-        <button class="tap rounded-lg bg-pixel px-3 py-1.5 text-sm font-bold text-zinc-950" @click="addPlan">添加</button>
+        <section class="card mb-4">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <h2 class="font-bold">今日打卡任务</h2>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">适合习惯、学习、运动、喝水等重复打卡</p>
+            </div>
+            <button class="tap rounded-lg bg-pixel px-3 py-1.5 text-sm font-bold text-zinc-950" @click="addPlan">添加</button>
+          </div>
+          <div class="mb-3 flex gap-2">
+            <input v-model="newPlan" class="min-w-0 flex-1 rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="新建一个打卡任务" @keydown.enter="addPlan" />
+          </div>
+          <div class="space-y-2">
+            <label v-for="plan in plans" :key="plan.id" class="tap flex items-center gap-3 rounded-lg bg-zinc-100 px-3 py-3 dark:bg-zinc-800">
+              <input type="checkbox" :checked="plan.completed" class="h-5 w-5 accent-green-500" @change="complete(plan)" />
+              <span class="min-w-0 flex-1" :class="{ 'line-through opacity-50': plan.completed }">{{ plan.title }}</span>
+              <span class="rounded bg-white px-2 py-1 text-xs dark:bg-zinc-900">每日</span>
+            </label>
+          </div>
+        </section>
       </div>
-      <div class="mb-3 flex gap-2">
-        <input v-model="newPlan" class="min-w-0 flex-1 rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="新建一个打卡任务" @keydown.enter="addPlan" />
-      </div>
-      <div class="space-y-2">
-        <label v-for="plan in plans" :key="plan.id" class="tap flex items-center gap-3 rounded-lg bg-zinc-100 px-3 py-3 dark:bg-zinc-800">
-          <input type="checkbox" :checked="plan.completed" class="h-5 w-5 accent-green-500" @change="complete(plan)" />
-          <span class="min-w-0 flex-1" :class="{ 'line-through opacity-50': plan.completed }">{{ plan.title }}</span>
-          <span class="rounded bg-white px-2 py-1 text-xs dark:bg-zinc-900">每日</span>
-        </label>
-      </div>
-    </section>
 
-    <section class="mb-4">
-      <div class="mb-2 flex items-center justify-between">
-        <h2 class="font-bold">数日与倒计时</h2>
-        <RouterLink to="/calendar" class="text-sm text-zinc-500">全部</RouterLink>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div v-for="item in countdowns" :key="item.id" class="card overflow-hidden">
-          <div class="mb-3 h-1.5 rounded-full" :style="{ background: item.color || '#52d273' }"></div>
-          <p class="text-sm font-semibold">{{ item.title }}</p>
-          <p class="mt-1 text-4xl font-black">{{ daysLeft(item.target_date) }}</p>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">天后</p>
-        </div>
-      </div>
-    </section>
+      <aside>
+        <section class="mb-4 overflow-hidden rounded-[28px] border border-white/20 bg-[linear-gradient(135deg,#52d273,#38bdf8)] p-5 text-zinc-950 shadow-soft">
+          <p class="text-sm font-bold opacity-70">今日能量</p>
+          <div class="mt-3 flex items-end justify-between">
+            <p class="text-6xl font-black">{{ completedCount }}</p>
+            <p class="pb-2 text-sm font-bold">已完成 / {{ plans.length }}</p>
+          </div>
+          <div class="mt-4 h-3 overflow-hidden rounded-full bg-white/35">
+            <div class="h-full rounded-full bg-zinc-950 transition-all duration-700" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+        </section>
 
-    <section class="card">
-      <div class="mb-3 flex items-center justify-between">
-        <h2 class="font-bold">随手记录</h2>
-        <RouterLink to="/publish" class="tap rounded-lg bg-zinc-950 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-zinc-950">发布</RouterLink>
-      </div>
-      <div class="grid grid-cols-3 gap-2">
-        <button v-for="item in quickRecords" :key="item" class="tap rounded-lg bg-zinc-100 px-2 py-3 text-sm font-semibold dark:bg-zinc-800">{{ item }}</button>
-      </div>
-    </section>
+        <section class="mb-4">
+          <div class="mb-2 flex items-center justify-between">
+            <h2 class="font-bold">数日与倒计时</h2>
+            <RouterLink to="/calendar" class="text-sm text-zinc-500">全部</RouterLink>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div v-for="item in countdowns" :key="item.id" class="card overflow-hidden">
+              <div class="mb-3 h-1.5 rounded-full" :style="{ background: item.color || '#52d273' }"></div>
+              <p class="text-sm font-semibold">{{ item.title }}</p>
+              <p class="mt-1 text-4xl font-black">{{ daysLeft(item.target_date) }}</p>
+              <p class="text-xs text-zinc-500 dark:text-zinc-400">天后</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="mb-3 flex items-center justify-between">
+            <h2 class="font-bold">随手记录</h2>
+            <RouterLink to="/publish" class="tap rounded-lg bg-zinc-950 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-zinc-950">发布</RouterLink>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button v-for="item in quickRecords" :key="item" class="tap rounded-lg bg-zinc-100 px-2 py-3 text-sm font-semibold dark:bg-zinc-800">{{ item }}</button>
+          </div>
+        </section>
+      </aside>
+    </div>
   </main>
   <PixelPet ref="pet" />
   <BottomNav />
@@ -112,6 +129,10 @@ const featureGrid = [
 ]
 
 const completedCount = computed(() => plans.value.filter((plan) => plan.completed).length)
+const progressPercent = computed(() => {
+  if (!plans.value.length) return 0
+  return Math.round((completedCount.value / plans.value.length) * 100)
+})
 
 onMounted(async () => {
   plans.value = await listPlans(today).catch(() => [])
