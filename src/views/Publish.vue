@@ -35,9 +35,16 @@
       </section>
 
       <section class="card grid gap-3">
-        <h2 class="font-bold">标签与心情</h2>
+        <h2 class="font-bold">表情与心情</h2>
+        <div class="grid grid-cols-4 gap-2">
+          <button v-for="item in moodOptions" :key="item.label" type="button" class="tap rounded-xl border px-2 py-3 text-center" :class="mood === item.value ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-blue-100 bg-white/70'" @click="mood = item.value">
+            <span class="block text-2xl">{{ item.emoji }}</span>
+            <span class="mt-1 block text-xs font-bold">{{ item.label }}</span>
+          </button>
+        </div>
+        <h2 class="font-bold">标签</h2>
         <input v-model="tagText" class="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="标签，用逗号分隔，如 学习,生活" />
-        <input v-model="mood" class="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="心情，如 开心、平静、🌙" />
+        <input v-model="mood" class="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="也可以自定义心情，如 🌙 平静" />
       </section>
 
       <p v-if="errorMessage" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
@@ -71,6 +78,16 @@ const mood = ref('')
 const saving = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const moodOptions = [
+  { emoji: '😊', label: '开心', value: '😊 开心' },
+  { emoji: '😌', label: '平静', value: '😌 平静' },
+  { emoji: '🔥', label: '燃起', value: '🔥 燃起' },
+  { emoji: '🌧️', label: '低落', value: '🌧️ 低落' },
+  { emoji: '🌙', label: '夜晚', value: '🌙 夜晚' },
+  { emoji: '💪', label: '努力', value: '💪 努力' },
+  { emoji: '🥳', label: '庆祝', value: '🥳 庆祝' },
+  { emoji: '🌹', label: '玫瑰', value: '🌹 玫瑰' },
+]
 
 function visibilityClass(value) {
   return [

@@ -41,7 +41,7 @@
         </div>
         <div class="mt-3 flex flex-wrap gap-2">
           <span v-for="item in moment.tags" :key="item" class="rounded bg-zinc-100 px-2 py-1 text-xs dark:bg-zinc-800">#{{ item }}</span>
-          <span v-if="moment.mood" class="rounded bg-yellow-100 px-2 py-1 text-xs text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-200">{{ moment.mood }}</span>
+          <span v-if="moment.mood" class="rounded-xl bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 ring-1 ring-blue-100">{{ moment.mood }}</span>
         </div>
 
         <div class="mt-4 flex items-center gap-2 border-t border-black/10 pt-3 dark:border-white/10">
