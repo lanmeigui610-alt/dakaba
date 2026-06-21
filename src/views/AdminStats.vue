@@ -56,7 +56,11 @@
               <td>{{ user.nickname || '哒咔用户' }}</td>
               <td>{{ formatDate(user.created_at) }}</td>
               <td>{{ formatDate(user.last_sign_in_at) }}</td>
-              <td>{{ user.is_banned ? '是' : '否' }}</td>
+              <td>
+                <button class="rounded-2xl px-3 py-1 text-xs font-bold" :class="user.is_banned ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'" @click="toggleBan(user)">
+                  {{ user.is_banned ? '已封禁' : '正常' }}
+                </button>
+              </td>
               <td>{{ user.moment_count || 0 }}</td>
               <td>{{ user.checkin_count || 0 }}</td>
             </tr>
@@ -121,6 +125,11 @@ function changePin() {
   pinMessage.value = '管理员密码已修改。'
   oldPin.value = ''
   newPin.value = ''
+}
+
+function toggleBan(user) {
+  user.is_banned = !user.is_banned
+  pinMessage.value = user.is_banned ? '已标记封禁。接入服务端接口后可同步到数据库。' : '已取消封禁标记。'
 }
 
 function logoutAdmin() {

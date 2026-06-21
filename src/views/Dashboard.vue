@@ -1,98 +1,68 @@
-﻿<template>
+<template>
   <main class="safe-bottom mx-auto px-4 py-5 lg:px-8">
-    <header class="mb-5 overflow-hidden rounded-[28px] border border-blue-100 bg-[linear-gradient(135deg,#ffffff,#eaf5ff_48%,#dff0ff)] px-5 pb-5 pt-5 text-slate-900 shadow-soft lg:px-7">
-      <div class="flex items-start justify-between">
-        <div>
-          <p class="text-sm font-bold text-blue-500">DakaBa</p>
-          <h1 class="mt-1 text-4xl font-black tracking-normal lg:text-6xl">哒咔Ba</h1>
-          <p class="mt-2 text-sm text-slate-500">打卡、数日、待办、日记和朋友圈都在这里。</p>
-        </div>
-        <RouterLink to="/profile" class="tap h-12 w-12 overflow-hidden rounded-lg border border-white/15 bg-white/10">
-          <img :src="avatar" class="h-full w-full object-cover" alt="" />
-        </RouterLink>
-      </div>
-
-      <div class="mt-5 grid grid-cols-3 gap-2">
-        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
-          <p class="text-xs text-slate-500">今日完成</p>
-          <p class="mt-1 text-2xl font-black">{{ completedCount }}</p>
-        </div>
-        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
-          <p class="text-xs text-slate-500">连续打卡</p>
-          <p class="mt-1 text-2xl font-black">12</p>
-        </div>
-        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
-          <p class="text-xs text-slate-500">累计记录</p>
-          <p class="mt-1 text-2xl font-black">38</p>
-        </div>
-      </div>
-    </header>
-
-    <div class="grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
+    <section class="home-hero mb-5">
       <div>
-        <section class="mb-4 grid grid-cols-4 gap-3 lg:grid-cols-4">
-          <RouterLink v-for="item in featureGrid" :key="item.title" :to="item.to" class="tap rounded-2xl border border-black/10 bg-white/80 p-3 text-center shadow-sm backdrop-blur-xl hover:-translate-y-1 hover:shadow-soft dark:border-white/10 dark:bg-zinc-900/80">
-            <component :is="item.icon" class="mx-auto h-6 w-6" :class="item.color" />
-            <span class="mt-2 block text-xs font-semibold">{{ item.title }}</span>
-          </RouterLink>
-        </section>
-
-        <section class="card mb-4">
-          <div class="mb-3 flex items-center justify-between">
-            <div>
-              <h2 class="font-bold">今日打卡任务</h2>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400">适合习惯、学习、运动、喝水等重复打卡</p>
-            </div>
-            <button class="tap rounded-lg bg-pixel px-3 py-1.5 text-sm font-bold text-zinc-950" @click="addPlan">添加</button>
-          </div>
-          <div class="mb-3 flex gap-2">
-            <input v-model="newPlan" class="min-w-0 flex-1 rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="新建一个打卡任务" @keydown.enter="addPlan" />
-          </div>
-          <div class="space-y-2">
-            <label v-for="plan in plans" :key="plan.id" class="tap flex items-center gap-3 rounded-lg bg-zinc-100 px-3 py-3 dark:bg-zinc-800">
-              <input type="checkbox" :checked="plan.completed" class="h-5 w-5 accent-green-500" @change="complete(plan)" />
-              <span class="min-w-0 flex-1" :class="{ 'line-through opacity-50': plan.completed }">{{ plan.title }}</span>
-              <span class="rounded bg-white px-2 py-1 text-xs dark:bg-zinc-900">每日</span>
-            </label>
-          </div>
-        </section>
+        <p class="text-sm font-black text-blue-500">DakaBa Trace</p>
+        <h1>今天留下什么痕迹？</h1>
+        <p>专注打卡、朋友圈记录和像素宠物陪伴。少一点复杂，多一点坚持。</p>
       </div>
+      <RouterLink to="/publish" class="hero-action">发朋友圈</RouterLink>
+    </section>
 
-      <aside>
-        <section class="mb-4 overflow-hidden rounded-[28px] border border-white/20 bg-[linear-gradient(135deg,#52d273,#38bdf8)] p-5 text-zinc-950 shadow-soft">
-          <p class="text-sm font-bold opacity-70">今日能量</p>
-          <div class="mt-3 flex items-end justify-between">
-            <p class="text-6xl font-black">{{ completedCount }}</p>
-            <p class="pb-2 text-sm font-bold">已完成 / {{ plans.length }}</p>
+    <div class="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+      <section class="card">
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-black">今日打卡</h2>
+            <p class="text-sm text-slate-500">像微信状态一样轻，像打卡软件一样清楚。</p>
           </div>
-          <div class="mt-4 h-3 overflow-hidden rounded-full bg-white/35">
-            <div class="h-full rounded-full bg-zinc-950 transition-all duration-700" :style="{ width: progressPercent + '%' }"></div>
-          </div>
-        </section>
+          <RouterLink to="/tasks" class="rounded-2xl bg-blue-500 px-4 py-2 text-sm font-bold text-white">管理</RouterLink>
+        </div>
 
-        <section class="mb-4">
-          <div class="mb-2 flex items-center justify-between">
-            <h2 class="font-bold">数日与倒计时</h2>
-            <RouterLink to="/calendar" class="text-sm text-zinc-500">全部</RouterLink>
+        <div class="mb-4 grid grid-cols-3 gap-3">
+          <div class="metric">
+            <p>完成</p>
+            <strong>{{ completedCount }}</strong>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div v-for="item in countdowns" :key="item.id" class="card overflow-hidden">
-              <div class="mb-3 h-1.5 rounded-full" :style="{ background: item.color || '#52d273' }"></div>
-              <p class="text-sm font-semibold">{{ item.title }}</p>
-              <p class="mt-1 text-4xl font-black">{{ daysLeft(item.target_date) }}</p>
-              <p class="text-xs text-zinc-500 dark:text-zinc-400">天后</p>
-            </div>
+          <div class="metric">
+            <p>待完成</p>
+            <strong>{{ Math.max(0, plans.length - completedCount) }}</strong>
           </div>
+          <div class="metric">
+            <p>完成率</p>
+            <strong>{{ progressPercent }}%</strong>
+          </div>
+        </div>
+
+        <div class="mb-3 flex gap-2">
+          <input v-model="newPlan" class="trace-input" placeholder="快速添加一个今日打卡" @keydown.enter="addPlan" />
+          <button class="trace-primary" @click="addPlan">添加</button>
+        </div>
+        <p v-if="toast" class="mb-3 rounded-2xl px-3 py-2 text-sm font-bold" :class="toastType === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'">{{ toast }}</p>
+
+        <div class="space-y-2">
+          <article v-for="plan in plans" :key="plan.id" class="check-card">
+            <button class="check-ring" :class="{ done: plan.completed }" @click="complete(plan)">
+              <Check v-if="plan.completed" class="h-4 w-4" />
+            </button>
+            <span :class="{ 'line-through opacity-50': plan.completed }">{{ plan.title }}</span>
+          </article>
+        </div>
+      </section>
+
+      <aside class="space-y-4">
+        <section class="energy-card">
+          <p>今日能量</p>
+          <strong>{{ progressPercent }}%</strong>
+          <div><span :style="{ width: progressPercent + '%' }"></span></div>
         </section>
 
         <section class="card">
           <div class="mb-3 flex items-center justify-between">
-            <h2 class="font-bold">随手记录</h2>
-            <RouterLink to="/publish" class="tap rounded-lg bg-zinc-950 px-3 py-1.5 text-sm text-white dark:bg-white dark:text-zinc-950">发布</RouterLink>
+            <h2 class="font-black">朋友圈</h2>
+            <RouterLink to="/feed" class="text-sm font-bold text-blue-600">查看</RouterLink>
           </div>
-          <div class="grid grid-cols-3 gap-2">
-            <button v-for="item in quickRecords" :key="item" class="tap rounded-lg bg-zinc-100 px-2 py-3 text-sm font-semibold dark:bg-zinc-800">{{ item }}</button>
-          </div>
+          <p class="text-sm text-slate-500">公开记录可以点赞评论，私密记录只给自己看。宠物会读你的朋友圈并回应。</p>
         </section>
       </aside>
     </div>
@@ -103,56 +73,171 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { BookOpenText, CalendarDays, CheckSquare, Clock3, Flame, Images, ListTodo, SmilePlus } from '@lucide/vue'
+import { Check } from '@lucide/vue'
 import BottomNav from '../components/BottomNav.vue'
 import PixelPet from '../components/PixelPet.vue'
 import { createPlan, listPlans, togglePlan } from '../api/plans'
-import { listCountdowns } from '../api/time'
 
 const today = new Date().toISOString().slice(0, 10)
-const avatar = 'https://api.dicebear.com/9.x/pixel-art/svg?seed=dakaba'
 const plans = ref([])
-const countdowns = ref([])
 const newPlan = ref('')
+const toast = ref('')
+const toastType = ref('ok')
 const pet = ref(null)
-const quickRecords = ['心情', '日记', '灵感']
-
-const featureGrid = [
-  { title: '打卡', to: '/tasks', icon: Flame, color: 'text-orange-500' },
-  { title: '待办', to: '/tasks', icon: ListTodo, color: 'text-sky-500' },
-  { title: '数日', to: '/calendar', icon: Clock3, color: 'text-green-500' },
-  { title: '日历', to: '/calendar', icon: CalendarDays, color: 'text-violet-500' },
-  { title: '日记', to: '/calendar', icon: BookOpenText, color: 'text-rose-500' },
-  { title: '朋友圈', to: '/feed', icon: Images, color: 'text-cyan-500' },
-  { title: '心情', to: '/calendar', icon: SmilePlus, color: 'text-yellow-500' },
-  { title: '回顾', to: '/profile', icon: CheckSquare, color: 'text-emerald-500' },
-]
 
 const completedCount = computed(() => plans.value.filter((plan) => plan.completed).length)
-const progressPercent = computed(() => {
-  if (!plans.value.length) return 0
-  return Math.round((completedCount.value / plans.value.length) * 100)
-})
+const progressPercent = computed(() => plans.value.length ? Math.round((completedCount.value / plans.value.length) * 100) : 0)
 
 onMounted(async () => {
   plans.value = await listPlans(today).catch(() => [])
-  countdowns.value = await listCountdowns().catch(() => [])
 })
 
+function showToast(message, type = 'ok') {
+  toast.value = message
+  toastType.value = type
+}
+
 async function addPlan() {
-  if (!newPlan.value.trim()) return
-  plans.value.push(await createPlan(newPlan.value.trim(), today))
-  newPlan.value = ''
+  const title = newPlan.value.trim()
+  if (!title) {
+    showToast('先写一点打卡内容吧。', 'error')
+    return
+  }
+  try {
+    const created = await createPlan(title, today)
+    plans.value.unshift(created)
+    newPlan.value = ''
+    showToast('已添加今日打卡')
+    pet.value?.say?.('新的打卡已经种下啦。')
+  } catch (error) {
+    showToast(error?.message || '添加失败，请稍后再试。', 'error')
+  }
 }
 
 async function complete(plan) {
-  const updated = await togglePlan(plan)
-  plans.value = plans.value.map((item) => (item.id === updated.id ? updated : item))
-  if (updated.completed) pet.value?.poke()
-}
-
-function daysLeft(date) {
-  const diff = new Date(date) - new Date(today)
-  return Math.max(0, Math.ceil(diff / 86400000))
+  try {
+    const updated = await togglePlan(plan)
+    plans.value = plans.value.map((item) => (item.id === updated.id ? updated : item))
+    if (updated.completed) pet.value?.poke()
+  } catch (error) {
+    showToast(error?.message || '操作失败，请稍后再试。', 'error')
+  }
 }
 </script>
+
+<style scoped>
+.home-hero {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #dbeafe;
+  border-radius: 30px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(226,242,255,.9));
+  padding: 28px;
+  box-shadow: 0 22px 70px rgba(37, 99, 235, .14);
+}
+.home-hero h1 {
+  margin-top: 6px;
+  font-size: clamp(34px, 6vw, 64px);
+  font-weight: 950;
+  color: #0f172a;
+}
+.home-hero p:last-child {
+  margin-top: 8px;
+  color: #64748b;
+}
+.hero-action,
+.trace-primary {
+  border-radius: 18px;
+  background: #2563eb;
+  padding: 13px 20px;
+  color: white;
+  font-weight: 900;
+  white-space: nowrap;
+}
+.metric {
+  border-radius: 22px;
+  background: #eff6ff;
+  padding: 14px;
+}
+.metric p {
+  font-size: 12px;
+  color: #64748b;
+}
+.metric strong {
+  display: block;
+  margin-top: 4px;
+  color: #2563eb;
+  font-size: 28px;
+  font-weight: 950;
+}
+.trace-input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #dbeafe;
+  border-radius: 18px;
+  background: white;
+  padding: 13px 15px;
+  outline: none;
+}
+.check-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 18px;
+  background: rgba(239, 246, 255, .78);
+  padding: 12px;
+  font-weight: 800;
+}
+.check-ring {
+  display: grid;
+  height: 30px;
+  width: 30px;
+  place-items: center;
+  border: 2px solid #93c5fd;
+  border-radius: 999px;
+  color: white;
+}
+.check-ring.done {
+  border-color: #2563eb;
+  background: #2563eb;
+}
+.energy-card {
+  border-radius: 30px;
+  background: linear-gradient(135deg, #2563eb, #7dd3fc);
+  padding: 24px;
+  color: white;
+  box-shadow: 0 22px 70px rgba(37, 99, 235, .18);
+}
+.energy-card p {
+  font-weight: 800;
+  opacity: .85;
+}
+.energy-card strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 64px;
+  font-weight: 950;
+}
+.energy-card div {
+  margin-top: 14px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.35);
+}
+.energy-card span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: white;
+  transition: width .5s ease;
+}
+@media (max-width: 720px) {
+  .home-hero {
+    align-items: start;
+    flex-direction: column;
+  }
+}
+</style>

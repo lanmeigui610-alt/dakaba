@@ -22,6 +22,27 @@ select id, coalesce(raw_user_meta_data ->> 'nickname', '哒咔用户')
 from auth.users
 on conflict (id) do nothing;
 
+create or replace function public.ensure_my_profile()
+returns public.profiles
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  profile_row public.profiles;
+begin
+  insert into public.profiles (id, nickname)
+  values (auth.uid(), '哒咔用户')
+  on conflict (id) do nothing;
+
+  select * into profile_row
+  from public.profiles
+  where id = auth.uid();
+
+  return profile_row;
+end;
+$$;
+
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('moment-media', 'moment-media', true, 512000, array['image/webp', 'image/gif'])
 on conflict (id) do update

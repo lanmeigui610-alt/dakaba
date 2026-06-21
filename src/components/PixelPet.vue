@@ -1,14 +1,18 @@
 <template>
-  <div class="pet-wrap" :style="{ transform: `translateX(${x}px)` }">
+  <div
+    class="pet-wrap"
+    :style="{ left: `${position.x}px`, top: `${position.y}px` }"
+    @pointerdown="startDrag"
+  >
     <div v-if="message" class="pet-bubble">{{ message }}</div>
 
-    <button v-if="isAway" class="sign tap" type="button" @click="showTravelMessage" aria-label="宠物留言牌">
+    <button v-if="isAway" class="sign tap" type="button" @click.stop="showTravelMessage" aria-label="宠物留言牌">
       <span class="sign-board">!</span>
       <span class="sign-stick"></span>
     </button>
 
-    <button v-else class="pet-button tap" type="button" @click="poke" aria-label="绿色像素宠物">
-      <div class="pet-stage">
+    <button v-else class="pet-button tap" type="button" @click.stop="poke" aria-label="绿色像素宠物">
+      <div class="pet-stage" :class="{ watering: mood === 'happy' }">
         <div :class="['pet pixelated', mood, direction]">
           <span class="ear ear-l"></span>
           <span class="ear ear-r"></span>
@@ -35,16 +39,60 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 
 const mood = ref('idle')
 const message = ref('')
 const isAway = ref(false)
-const x = ref(0)
 const direction = ref('face-right')
+const position = reactive({ x: 720, y: 138 })
+const drag = reactive({ active: false, moved: false, offsetX: 0, offsetY: 0 })
 let walkTimer
 let awayTimer
 let returnTimer
+
+function setInitialPosition() {
+  const saved = localStorage.getItem('dakaba-pet-position')
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      position.x = parsed.x
+      position.y = parsed.y
+      return
+    } catch {}
+  }
+  position.x = Math.min(window.innerWidth - 210, Math.max(220, window.innerWidth * 0.66))
+  position.y = window.innerWidth < 760 ? 112 : 138
+}
+
+function clampPosition() {
+  position.x = Math.max(24, Math.min(window.innerWidth - 190, position.x))
+  position.y = Math.max(80, Math.min(window.innerHeight - 170, position.y))
+}
+
+function startDrag(event) {
+  drag.active = true
+  drag.moved = false
+  drag.offsetX = event.clientX - position.x
+  drag.offsetY = event.clientY - position.y
+  window.addEventListener('pointermove', onDrag)
+  window.addEventListener('pointerup', stopDrag)
+}
+
+function onDrag(event) {
+  if (!drag.active) return
+  drag.moved = true
+  position.x = event.clientX - drag.offsetX
+  position.y = event.clientY - drag.offsetY
+  clampPosition()
+}
+
+function stopDrag() {
+  drag.active = false
+  localStorage.setItem('dakaba-pet-position', JSON.stringify(position))
+  window.removeEventListener('pointermove', onDrag)
+  window.removeEventListener('pointerup', stopDrag)
+}
 
 function replyFromText(text = '') {
   if (/累|难|烦|低落|哭|emo/i.test(text)) return '我看到了，今天先慢一点也可以。'
@@ -63,6 +111,7 @@ function say(text) {
 }
 
 function poke() {
+  if (drag.moved) return
   mood.value = 'happy'
   say(['你好呀，今天也要哒咔。', '我在看你的记录呢。', '我给蓝色玫瑰浇水啦。'][Math.floor(Math.random() * 3)])
   window.setTimeout(() => {
@@ -71,15 +120,16 @@ function poke() {
 }
 
 function showTravelMessage() {
+  if (drag.moved) return
   say('我去环游世界喽，别想我哦')
 }
 
 function startWalking() {
   walkTimer = window.setInterval(() => {
-    if (isAway.value) return
-    const next = Math.max(-24, Math.min(24, x.value + (Math.random() > 0.5 ? 10 : -10)))
-    direction.value = next >= x.value ? 'face-right' : 'face-left'
-    x.value = next
+    if (isAway.value || drag.active) return
+    const next = Math.max(24, Math.min(window.innerWidth - 190, position.x + (Math.random() > 0.5 ? 10 : -10)))
+    direction.value = next >= position.x ? 'face-right' : 'face-left'
+    position.x = next
     mood.value = 'walking'
     window.setTimeout(() => {
       if (!isAway.value) mood.value = 'idle'
@@ -89,11 +139,11 @@ function startWalking() {
 
 function scheduleTrips() {
   awayTimer = window.setInterval(() => {
+    if (drag.active) return
     isAway.value = true
     message.value = ''
     returnTimer = window.setTimeout(() => {
       isAway.value = false
-      x.value = 0
       mood.value = 'happy'
       say('我回来啦，带了一点风。')
       window.setTimeout(() => {
@@ -115,10 +165,13 @@ function readPendingComment() {
 }
 
 onMounted(() => {
+  setInitialPosition()
+  clampPosition()
   startWalking()
   scheduleTrips()
   readPendingComment()
   window.addEventListener('focus', readPendingComment)
+  window.addEventListener('resize', clampPosition)
 })
 
 onBeforeUnmount(() => {
@@ -126,6 +179,9 @@ onBeforeUnmount(() => {
   window.clearInterval(awayTimer)
   window.clearTimeout(returnTimer)
   window.removeEventListener('focus', readPendingComment)
+  window.removeEventListener('resize', clampPosition)
+  window.removeEventListener('pointermove', onDrag)
+  window.removeEventListener('pointerup', stopDrag)
 })
 
 defineExpose({ poke, say })
@@ -134,18 +190,16 @@ defineExpose({ poke, say })
 <style scoped>
 .pet-wrap {
   position: fixed;
-  left: min(68vw, calc(50% + 330px));
-  top: 138px;
   z-index: 45;
-  transition: transform .7s steps(3);
+  cursor: grab;
+  touch-action: none;
 }
-
+.pet-wrap:active { cursor: grabbing; }
 .pet-button,
 .sign {
   border: 0;
   background: transparent;
 }
-
 .pet-stage {
   position: relative;
   height: 118px;
@@ -153,13 +207,11 @@ defineExpose({ poke, say })
   border-radius: 24px;
   background: rgba(255, 255, 255, .9);
   box-shadow: 0 18px 44px rgba(31, 142, 82, .20);
-  backdrop-filter: blur(14px);
 }
-
 .pet-bubble {
   position: absolute;
-  left: -18px;
-  top: 130px;
+  left: -14px;
+  bottom: 128px;
   width: 190px;
   border: 4px solid #123f2a;
   background: #f5fff9;
@@ -169,7 +221,6 @@ defineExpose({ poke, say })
   font-weight: 900;
   box-shadow: 6px 6px 0 rgba(18, 63, 42, .16);
 }
-
 .pet {
   position: absolute;
   right: 24px;
@@ -182,7 +233,6 @@ defineExpose({ poke, say })
   box-shadow: inset -9px -8px 0 #25a957;
   animation: idle 2.2s ease-in-out infinite;
 }
-
 .ear {
   position: absolute;
   top: -15px;
@@ -192,7 +242,6 @@ defineExpose({ poke, say })
   border-bottom: 0;
   background: #5ee48b;
 }
-
 .ear-l { left: 7px; }
 .ear-r { right: 7px; }
 .eye {
@@ -284,7 +333,7 @@ defineExpose({ poke, say })
   background: #45b7ff;
   opacity: 0;
 }
-.pet-stage:has(.happy) .water {
+.watering .water {
   animation: water-drop .75s ease-in-out calc(var(--i) * .08s) 2;
 }
 .pet-shadow {
@@ -332,15 +381,6 @@ defineExpose({ poke, say })
   height: 48px;
   background: #8b5a32;
   box-shadow: inset -3px 0 0 #5a3a22;
-}
-@media (max-width: 760px) {
-  .pet-wrap {
-    left: auto;
-    right: 44px;
-    top: 112px;
-    transform: scale(.82) !important;
-    transform-origin: top right;
-  }
 }
 @keyframes idle {
   0%, 100% { transform: translateY(0); }

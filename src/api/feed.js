@@ -1,5 +1,6 @@
 import imageCompression from 'browser-image-compression'
 import { supabase, requireUser } from '../lib/supabase'
+import { ensureProfile } from './auth'
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://dakaba.vercel.app'
 
@@ -51,6 +52,7 @@ export async function uploadMomentImages(files) {
 
 export async function createMoment({ body, mediaFiles, visibility, mood, tags }) {
   const user = await requireUser()
+  await ensureProfile()
   const media_urls = mediaFiles?.length ? await uploadMomentImages(mediaFiles) : []
   const { data, error } = await supabase
     .from('moments')

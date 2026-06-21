@@ -55,3 +55,15 @@ export async function updateProfile(profile) {
   if (error) throw error
   return data
 }
+
+export async function ensureProfile() {
+  const user = await requireUser()
+  const nickname = user.user_metadata?.nickname || user.email?.split('@')[0] || user.phone || '哒咔用户'
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert({ id: user.id, nickname }, { onConflict: 'id' })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

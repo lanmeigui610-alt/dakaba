@@ -25,15 +25,26 @@
           <button :class="{ active: mode === 'signup' }" type="button" @click="mode = 'signup'">注册</button>
         </div>
 
-        <label>
+        <label v-if="mode !== 'reset'">
           <span>{{ mode === 'recover' ? '注册邮箱' : mode === 'admin' ? '管理员四位密码' : '手机号或邮箱' }}</span>
           <input v-model="account" :type="mode === 'admin' ? 'password' : 'text'" :maxlength="mode === 'admin' ? 4 : undefined" :placeholder="mode === 'recover' ? '请输入注册邮箱' : mode === 'admin' ? '请输入 4 位管理员密码' : '请输入手机号或邮箱'" autocomplete="username" />
         </label>
 
-        <label v-if="mode !== 'recover' && mode !== 'admin'">
+        <label v-if="mode !== 'recover' && mode !== 'admin' && mode !== 'reset'">
           <span>密码</span>
           <input v-model="password" type="password" placeholder="请输入密码" autocomplete="current-password" @keydown.enter="submit" />
         </label>
+
+        <template v-if="mode === 'reset'">
+          <label>
+            <span>新密码</span>
+            <input v-model="newPassword" type="password" placeholder="请输入新密码" />
+          </label>
+          <label>
+            <span>确认新密码</span>
+            <input v-model="confirmPassword" type="password" placeholder="再次输入新密码" @keydown.enter="submit" />
+          </label>
+        </template>
 
         <template v-if="mode === 'signup'">
           <label>
@@ -80,10 +91,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PixelPet from '../components/PixelPet.vue'
-import { signInWithPhone, signUpWithPhone, sendPasswordReset } from '../api/auth'
+import { signInWithPhone, signUpWithPhone, sendPasswordReset, updatePassword } from '../api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,6 +104,8 @@ const password = ref('')
 const nickname = ref('')
 const question = ref('')
 const answer = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const notice = ref('')
@@ -101,6 +114,7 @@ const modeTitle = computed(() => ({
   signin: { kicker: '欢迎回来', title: '登录账户' },
   signup: { kicker: '第一次见面', title: '创建账户' },
   recover: { kicker: '别着急', title: '找回密码' },
+  reset: { kicker: '重新开始', title: '设置新密码' },
   admin: { kicker: '管理入口', title: '管理员登录' },
 }[mode.value]))
 
@@ -108,14 +122,24 @@ const submitLabel = computed(() => {
   if (loading.value) return '处理中...'
   if (mode.value === 'signup') return '创建账户'
   if (mode.value === 'recover') return '发送重置邮件'
+  if (mode.value === 'reset') return '保存新密码'
   if (mode.value === 'admin') return '管理员登录'
   return '登录'
 })
 
 const canSubmit = computed(() => {
   if (mode.value === 'recover') return account.value && question.value && answer.value
+  if (mode.value === 'reset') return newPassword.value && confirmPassword.value
   if (mode.value === 'admin') return account.value.length === 4
   return account.value && password.value
+})
+
+onMounted(() => {
+  const hash = window.location.hash
+  const search = window.location.search
+  if (hash.includes('type=recovery') || search.includes('type=recovery') || hash.includes('access_token')) {
+    mode.value = 'reset'
+  }
 })
 
 async function submit() {
@@ -126,6 +150,17 @@ async function submit() {
     if (mode.value === 'recover') {
       await sendPasswordReset(account.value.trim())
       notice.value = '已发送重置密码邮件。请打开邮箱链接重设密码；安全问题用于确认你本人在操作。'
+      return
+    }
+
+    if (mode.value === 'reset') {
+      if (newPassword.value !== confirmPassword.value) throw new Error('两次输入的新密码不一致。')
+      await updatePassword(newPassword.value)
+      notice.value = '新密码已保存，可以直接用新密码登录。'
+      mode.value = 'signin'
+      password.value = ''
+      newPassword.value = ''
+      confirmPassword.value = ''
       return
     }
 
