@@ -4,6 +4,17 @@ import { ensureProfile } from './auth'
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://dakaba.vercel.app'
 
+export async function getMyProfile() {
+  const user = await requireUser()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, nickname, avatar_url, is_banned')
+    .eq('id', user.id)
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function compressImages(files) {
   const options = {
     maxSizeMB: 0.45,
@@ -13,7 +24,7 @@ export async function compressImages(files) {
     initialQuality: 0.76,
   }
   const compressed = []
-  for (const file of Array.from(files)) {
+  for (const file of Array.from(files || [])) {
     if (file.type === 'image/gif') {
       if (file.size > 500 * 1024) {
         throw new Error('GIF 不能超过 500KB。请换一张更小的 GIF，或先用图片发布。')
@@ -53,6 +64,11 @@ export async function uploadMomentImages(files) {
 export async function createMoment({ body, mediaFiles, visibility, mood, tags }) {
   const user = await requireUser()
   await ensureProfile()
+  const profile = await getMyProfile()
+  if (visibility === 'public' && profile?.is_banned) {
+    throw new Error('你的账号已被管理员限制，暂时不能发布公开朋友圈。你仍然可以发布私密记录。')
+  }
+
   const media_urls = mediaFiles?.length ? await uploadMomentImages(mediaFiles) : []
   const { data, error } = await supabase
     .from('moments')
@@ -118,7 +134,7 @@ export async function exportMomentCard(element, fileName = 'dakaba-moment.png') 
   const ctx = canvas.getContext('2d')
   ctx.save()
   ctx.font = '22px sans-serif'
-  ctx.fillStyle = 'rgba(255,255,255,.9)'
+  ctx.fillStyle = 'rgba(255,255,255,.92)'
   ctx.strokeStyle = 'rgba(0,0,0,.45)'
   ctx.lineWidth = 4
   const text = `哒咔Ba · ${SITE_URL}`

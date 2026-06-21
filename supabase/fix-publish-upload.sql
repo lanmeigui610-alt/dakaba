@@ -60,7 +60,41 @@ create policy "public can read moment media"
 on storage.objects for select to authenticated
 using (bucket_id = 'moment-media');
 
-create or replace function public.get_admin_users()
+drop policy if exists "users insert own moments" on public.moments;
+drop policy if exists "users can insert own moments" on public.moments;
+create policy "users insert own moments"
+on public.moments for insert to authenticated
+with check (
+  user_id = auth.uid()
+  and (
+    visibility = 'private'
+    or not exists (
+      select 1
+      from public.profiles p
+      where p.id = auth.uid()
+        and coalesce(p.is_banned, false) = true
+    )
+  )
+);
+
+create or replace function public.get_admin_stats(admin_pin text default '')
+returns json
+language sql
+security definer
+set search_path = public, auth
+as $$
+  select case
+    when admin_pin <> '2641' then json_build_object('error', '管理员密码不正确')
+    else json_build_object(
+      'total_users', (select count(*) from auth.users),
+      'today_active_users', (select count(*) from auth.users where last_sign_in_at::date = now()::date),
+      'total_checkins', (select count(*) from public.plans where completed = true),
+      'storage_mb', 0
+    )
+  end;
+$$;
+
+create or replace function public.get_admin_users(admin_pin text default '')
 returns table (
   user_id uuid,
   account text,
@@ -86,5 +120,26 @@ as $$
     (select count(*) from public.plans pl where pl.user_id = u.id and pl.completed = true) as checkin_count
   from auth.users u
   left join public.profiles p on p.id = u.id
+  where admin_pin = '2641'
   order by u.created_at desc;
+$$;
+
+create or replace function public.set_user_ban(target_user_id uuid, banned boolean, admin_pin text default '')
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if admin_pin <> '2641' then
+    raise exception '管理员密码不正确';
+  end if;
+
+  update public.profiles
+  set is_banned = banned,
+      updated_at = now()
+  where id = target_user_id;
+
+  return true;
+end;
 $$;

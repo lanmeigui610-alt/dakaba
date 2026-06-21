@@ -7,7 +7,7 @@ export const isDemoMode = !supabaseUrl || !supabaseAnonKey
 
 const today = new Date().toISOString().slice(0, 10)
 const demoStore = {
-  profiles: [{ id: 'demo-user', nickname: '哒咔用户', avatar_url: '', bio: '每天留下一点痕迹。' }],
+  profiles: [{ id: 'demo-user', nickname: '哒咔用户', avatar_url: '', bio: '每天留下一点痕迹。', is_banned: false }],
   moments: [
     {
       id: 'demo-moment-1',
@@ -84,9 +84,13 @@ const demoSupabase = {
     signOut: () => demoResponse(null),
   },
   from: (table) => createDemoQuery(table),
-  rpc: (name) => {
+  rpc: (name, args = {}) => {
     if (name === 'get_admin_users') {
       return demoResponse([{ user_id: 'demo-user', account: 'demo@dakaba.local', nickname: '哒咔用户', created_at: new Date().toISOString(), last_sign_in_at: new Date().toISOString(), is_banned: false, moment_count: 1, checkin_count: 1 }])
+    }
+    if (name === 'set_user_ban') {
+      demoStore.profiles[0].is_banned = Boolean(args.banned)
+      return demoResponse(true)
     }
     return demoResponse({ total_users: 1, today_active_users: 1, total_checkins: 1, storage_mb: 0 })
   },

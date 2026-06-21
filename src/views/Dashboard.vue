@@ -1,22 +1,34 @@
 <template>
-  <main class="safe-bottom mx-auto px-4 py-5 lg:px-8">
+  <main class="safe-bottom mx-auto max-w-7xl px-4 py-5 lg:px-8">
     <section class="home-hero mb-5">
-      <div>
-        <p class="text-sm font-black text-blue-500">DakaBa Trace</p>
-        <h1>今天留下什么痕迹？</h1>
-        <p>专注打卡、朋友圈记录和像素宠物陪伴。少一点复杂，多一点坚持。</p>
+      <div class="hero-copy">
+        <p class="hero-kicker">DakaBa Trace</p>
+        <h1>把今天，留成一条漂亮的痕迹。</h1>
+        <p>朋友圈记录、每日打卡、心情和像素宠物都在这里。少一点复杂，多一点坚持。</p>
+        <div class="hero-actions">
+          <RouterLink to="/publish" class="primary-action">发朋友圈</RouterLink>
+          <RouterLink to="/tasks" class="ghost-action">创建打卡</RouterLink>
+        </div>
       </div>
-      <RouterLink to="/publish" class="hero-action">发朋友圈</RouterLink>
+      <div class="hero-panel">
+        <div class="pulse-card">
+          <span>今日能量</span>
+          <strong>{{ progressPercent }}%</strong>
+          <div><i :style="{ width: progressPercent + '%' }"></i></div>
+        </div>
+        <div class="floating-note note-a">公开动态可点赞评论</div>
+        <div class="floating-note note-b">私密记录只给自己看</div>
+      </div>
     </section>
 
-    <div class="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+    <div class="grid gap-4 lg:grid-cols-[1.08fr_.92fr]">
       <section class="card">
         <div class="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-black">今日打卡</h2>
             <p class="text-sm text-slate-500">像微信状态一样轻，像打卡软件一样清楚。</p>
           </div>
-          <RouterLink to="/tasks" class="rounded-2xl bg-blue-500 px-4 py-2 text-sm font-bold text-white">管理</RouterLink>
+          <RouterLink to="/tasks" class="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-black text-white">管理</RouterLink>
         </div>
 
         <div class="mb-4 grid grid-cols-3 gap-3">
@@ -47,22 +59,27 @@
             </button>
             <span :class="{ 'line-through opacity-50': plan.completed }">{{ plan.title }}</span>
           </article>
+          <p v-if="!plans.length" class="rounded-2xl bg-blue-50 px-4 py-6 text-center text-sm font-bold text-blue-700">
+            今天还没有打卡，先添加一个小目标吧。
+          </p>
         </div>
       </section>
 
       <aside class="space-y-4">
-        <section class="energy-card">
-          <p>今日能量</p>
-          <strong>{{ progressPercent }}%</strong>
-          <div><span :style="{ width: progressPercent + '%' }"></span></div>
+        <section class="life-grid">
+          <RouterLink v-for="item in quickLinks" :key="item.title" :to="item.to" class="life-card">
+            <component :is="item.icon" class="h-5 w-5" />
+            <span>{{ item.title }}</span>
+            <small>{{ item.desc }}</small>
+          </RouterLink>
         </section>
 
         <section class="card">
           <div class="mb-3 flex items-center justify-between">
             <h2 class="font-black">朋友圈</h2>
-            <RouterLink to="/feed" class="text-sm font-bold text-blue-600">查看</RouterLink>
+            <RouterLink to="/feed" class="text-sm font-black text-blue-600">查看</RouterLink>
           </div>
-          <p class="text-sm text-slate-500">公开记录可以点赞评论，私密记录只给自己看。宠物会读你的朋友圈并回应。</p>
+          <p class="text-sm leading-6 text-slate-500">公开记录可以点赞评论，私密记录只给自己看。发布以后，宠物会读你的内容并给出回应。</p>
         </section>
       </aside>
     </div>
@@ -73,7 +90,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { Check } from '@lucide/vue'
+import { BookOpenText, Check, ImagePlus, ListTodo, Sparkles } from '@lucide/vue'
 import BottomNav from '../components/BottomNav.vue'
 import PixelPet from '../components/PixelPet.vue'
 import { createPlan, listPlans, togglePlan } from '../api/plans'
@@ -84,6 +101,12 @@ const newPlan = ref('')
 const toast = ref('')
 const toastType = ref('ok')
 const pet = ref(null)
+const quickLinks = [
+  { title: '生活记录', desc: '像每一迹一样留下日常', to: '/tasks', icon: Sparkles },
+  { title: '待办事项', desc: '计划、目标、复盘分开管', to: '/tasks', icon: ListTodo },
+  { title: '照片动态', desc: '图片/GIF 自动压缩上传', to: '/publish', icon: ImagePlus },
+  { title: '日记心情', desc: '表情、心情、私密记录', to: '/calendar', icon: BookOpenText },
+]
 
 const completedCount = computed(() => plans.value.filter((plan) => plan.completed).length)
 const progressPercent = computed(() => plans.value.length ? Math.round((completedCount.value / plans.value.length) * 100) : 0)
@@ -107,7 +130,7 @@ async function addPlan() {
     const created = await createPlan(title, today)
     plans.value.unshift(created)
     newPlan.value = ''
-    showToast('已添加今日打卡')
+    showToast('已添加今日打卡。')
     pet.value?.say?.('新的打卡已经种下啦。')
   } catch (error) {
     showToast(error?.message || '添加失败，请稍后再试。', 'error')
@@ -127,35 +150,116 @@ async function complete(plan) {
 
 <style scoped>
 .home-hero {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 18px;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr);
+  gap: 22px;
+  overflow: hidden;
   border: 1px solid #dbeafe;
-  border-radius: 30px;
-  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(226,242,255,.9));
-  padding: 28px;
-  box-shadow: 0 22px 70px rgba(37, 99, 235, .14);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 80% 12%, rgba(125, 211, 252, .45), transparent 26%),
+    linear-gradient(135deg, rgba(255,255,255,.97), rgba(226,242,255,.9));
+  padding: 30px;
+  box-shadow: 0 28px 80px rgba(37, 99, 235, .15);
 }
-.home-hero h1 {
-  margin-top: 6px;
-  font-size: clamp(34px, 6vw, 64px);
+.hero-kicker {
+  color: #2563eb;
+  font-size: 13px;
   font-weight: 950;
-  color: #0f172a;
 }
-.home-hero p:last-child {
+.hero-copy h1 {
   margin-top: 8px;
-  color: #64748b;
+  max-width: 760px;
+  color: #0f172a;
+  font-size: clamp(38px, 7vw, 76px);
+  font-weight: 950;
+  line-height: .98;
 }
-.hero-action,
+.hero-copy p:last-of-type {
+  margin-top: 14px;
+  max-width: 600px;
+  color: #64748b;
+  line-height: 1.8;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+.primary-action,
+.ghost-action,
 .trace-primary {
   border-radius: 18px;
-  background: #2563eb;
   padding: 13px 20px;
-  color: white;
-  font-weight: 900;
+  font-weight: 950;
   white-space: nowrap;
 }
+.primary-action,
+.trace-primary {
+  background: #2563eb;
+  color: white;
+  box-shadow: 0 16px 34px rgba(37,99,235,.24);
+}
+.ghost-action {
+  border: 1px solid #bfdbfe;
+  background: white;
+  color: #2563eb;
+}
+.hero-panel {
+  position: relative;
+  min-height: 230px;
+}
+.pulse-card {
+  position: absolute;
+  right: 18px;
+  top: 20px;
+  width: min(280px, 100%);
+  border-radius: 28px;
+  background: #0f172a;
+  padding: 22px;
+  color: white;
+  box-shadow: 0 24px 55px rgba(15,23,42,.22);
+  animation: floaty 4s ease-in-out infinite;
+}
+.pulse-card span {
+  font-weight: 800;
+  opacity: .76;
+}
+.pulse-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 62px;
+  font-weight: 950;
+}
+.pulse-card div {
+  margin-top: 12px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,.18);
+}
+.pulse-card i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #7dd3fc;
+  transition: width .5s ease;
+}
+.floating-note {
+  position: absolute;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  padding: 10px 14px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 950;
+  box-shadow: 0 14px 35px rgba(37,99,235,.12);
+}
+.note-a { left: 10px; bottom: 58px; }
+.note-b { right: 38px; bottom: 8px; }
 .metric {
   border-radius: 22px;
   background: #eff6ff;
@@ -203,41 +307,58 @@ async function complete(plan) {
   border-color: #2563eb;
   background: #2563eb;
 }
-.energy-card {
-  border-radius: 30px;
-  background: linear-gradient(135deg, #2563eb, #7dd3fc);
-  padding: 24px;
-  color: white;
-  box-shadow: 0 22px 70px rgba(37, 99, 235, .18);
+.life-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
-.energy-card p {
-  font-weight: 800;
-  opacity: .85;
+.life-card {
+  display: grid;
+  gap: 8px;
+  min-height: 128px;
+  border: 1px solid #dbeafe;
+  border-radius: 24px;
+  background: rgba(255,255,255,.9);
+  padding: 16px;
+  color: #2563eb;
+  box-shadow: 0 14px 34px rgba(37,99,235,.10);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
-.energy-card strong {
-  display: block;
-  margin-top: 6px;
-  font-size: 64px;
+.life-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(37,99,235,.16);
+}
+.life-card span {
+  color: #0f172a;
   font-weight: 950;
 }
-.energy-card div {
-  margin-top: 14px;
-  height: 10px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255,255,255,.35);
+.life-card small {
+  color: #64748b;
+  line-height: 1.5;
 }
-.energy-card span {
-  display: block;
-  height: 100%;
-  border-radius: 999px;
-  background: white;
-  transition: width .5s ease;
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .home-hero {
-    align-items: start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
+    padding: 24px;
+  }
+  .hero-panel {
+    min-height: 210px;
+  }
+  .pulse-card {
+    left: 0;
+    right: auto;
+  }
+}
+@media (max-width: 520px) {
+  .life-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-copy h1 {
+    font-size: 40px;
   }
 }
 </style>

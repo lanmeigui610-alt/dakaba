@@ -6,6 +6,18 @@
   >
     <div v-if="message" class="pet-bubble">{{ message }}</div>
 
+    <section v-if="chatOpen && !isAway" class="chat-card" @pointerdown.stop>
+      <div class="chat-title">和哒咔聊天</div>
+      <div class="chat-line pet-line">{{ chatReply }}</div>
+      <div class="quick-row">
+        <button v-for="item in quickChats" :key="item" type="button" @click="talk(item)">{{ item }}</button>
+      </div>
+      <div class="chat-input">
+        <input v-model="chatText" placeholder="跟它说句话" @keydown.enter="sendChat" />
+        <button type="button" @click="sendChat">发送</button>
+      </div>
+    </section>
+
     <button v-if="isAway" class="sign tap" type="button" @click.stop="showTravelMessage" aria-label="宠物留言牌">
       <span class="sign-board">!</span>
       <span class="sign-stick"></span>
@@ -45,6 +57,10 @@ const mood = ref('idle')
 const message = ref('')
 const isAway = ref(false)
 const direction = ref('face-right')
+const chatOpen = ref(false)
+const chatText = ref('')
+const chatReply = ref('你好呀，我在这里陪你记录生活。')
+const quickChats = ['今天鼓励我', '给玫瑰浇水', '看看朋友圈']
 const position = reactive({ x: 720, y: 138 })
 const drag = reactive({ active: false, moved: false, offsetX: 0, offsetY: 0 })
 let walkTimer
@@ -61,13 +77,13 @@ function setInitialPosition() {
       return
     } catch {}
   }
-  position.x = Math.min(window.innerWidth - 210, Math.max(220, window.innerWidth * 0.66))
-  position.y = window.innerWidth < 760 ? 112 : 138
+  position.x = Math.min(window.innerWidth - 220, Math.max(120, window.innerWidth * 0.58))
+  position.y = window.innerWidth < 760 ? 116 : 150
 }
 
 function clampPosition() {
-  position.x = Math.max(24, Math.min(window.innerWidth - 190, position.x))
-  position.y = Math.max(80, Math.min(window.innerHeight - 170, position.y))
+  position.x = Math.max(32, Math.min(window.innerWidth - 190, position.x))
+  position.y = Math.max(86, Math.min(window.innerHeight - 190, position.y))
 }
 
 function startDrag(event) {
@@ -95,11 +111,11 @@ function stopDrag() {
 }
 
 function replyFromText(text = '') {
-  if (/累|难|烦|低落|哭|emo/i.test(text)) return '我看到了，今天先慢一点也可以。'
-  if (/开心|快乐|成功|完成|庆祝|棒/i.test(text)) return '这条很闪亮，我要给你鼓掌。'
-  if (/学习|考试|作业|背|读/i.test(text)) return '学习痕迹已收下，继续稳稳前进。'
-  if (/运动|跑步|健身|走路/i.test(text)) return '身体也在认真哒咔，真不错。'
-  if (/玫瑰|花/i.test(text)) return '我给蓝色玫瑰也浇了一点水。'
+  if (/难过|低落|emo|累|烦|哭/i.test(text)) return '我看到你的情绪了，今天先慢一点也可以。'
+  if (/开心|快乐|成功|完成|庆祝|棒|喜欢/i.test(text)) return '这条很闪亮，我要给你鼓掌，还要给玫瑰多浇一点水。'
+  if (/学习|考试|作业|背|读书/i.test(text)) return '学习痕迹已经收下，稳稳往前走。'
+  if (/运动|跑步|健身|走路/i.test(text)) return '身体也在认真打卡，真不错。'
+  if (/玫瑰|花|蓝色/i.test(text)) return '蓝色玫瑰收到关心啦，我马上浇水。'
   return '我读完啦，这条朋友圈很有生活感。'
 }
 
@@ -107,13 +123,33 @@ function say(text) {
   message.value = text
   window.setTimeout(() => {
     message.value = ''
-  }, 2600)
+  }, 3000)
+}
+
+function talk(text) {
+  chatReply.value = replyFromText(text)
+  mood.value = 'happy'
+  say(chatReply.value)
+  window.setTimeout(() => {
+    mood.value = 'idle'
+  }, 1800)
+}
+
+function sendChat() {
+  const text = chatText.value.trim()
+  if (!text) {
+    talk('今天鼓励我')
+    return
+  }
+  talk(text)
+  chatText.value = ''
 }
 
 function poke() {
   if (drag.moved) return
+  chatOpen.value = !chatOpen.value
   mood.value = 'happy'
-  say(['你好呀，今天也要哒咔。', '我在看你的记录呢。', '我给蓝色玫瑰浇水啦。'][Math.floor(Math.random() * 3)])
+  say(chatOpen.value ? '我在这儿，想聊什么？' : '我去给蓝色玫瑰浇水啦。')
   window.setTimeout(() => {
     mood.value = 'idle'
   }, 1800)
@@ -126,39 +162,40 @@ function showTravelMessage() {
 
 function startWalking() {
   walkTimer = window.setInterval(() => {
-    if (isAway.value || drag.active) return
-    const next = Math.max(24, Math.min(window.innerWidth - 190, position.x + (Math.random() > 0.5 ? 10 : -10)))
+    if (isAway.value || drag.active || chatOpen.value) return
+    const next = Math.max(32, Math.min(window.innerWidth - 190, position.x + (Math.random() > 0.5 ? 12 : -12)))
     direction.value = next >= position.x ? 'face-right' : 'face-left'
     position.x = next
     mood.value = 'walking'
     window.setTimeout(() => {
       if (!isAway.value) mood.value = 'idle'
     }, 650)
-  }, 3800)
+  }, 4200)
 }
 
 function scheduleTrips() {
   awayTimer = window.setInterval(() => {
-    if (drag.active) return
+    if (drag.active || chatOpen.value) return
     isAway.value = true
     message.value = ''
     returnTimer = window.setTimeout(() => {
       isAway.value = false
       mood.value = 'happy'
-      say('我回来啦，带了一点风。')
+      say('我回来啦，带了一点风和一朵小花。')
       window.setTimeout(() => {
         mood.value = 'idle'
       }, 1800)
-    }, 7000)
-  }, 60000)
+    }, 6000)
+  }, 110000)
 }
 
 function readPendingComment() {
   const text = localStorage.getItem('dakaba-pet-comment')
   if (!text) return
   localStorage.removeItem('dakaba-pet-comment')
+  chatReply.value = replyFromText(text)
   mood.value = 'happy'
-  say(replyFromText(text))
+  say(chatReply.value)
   window.setTimeout(() => {
     mood.value = 'idle'
   }, 2200)
@@ -184,7 +221,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('pointerup', stopDrag)
 })
 
-defineExpose({ poke, say })
+defineExpose({ poke, say, talk })
 </script>
 
 <style scoped>
@@ -202,29 +239,85 @@ defineExpose({ poke, say })
 }
 .pet-stage {
   position: relative;
-  height: 118px;
-  width: 162px;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, .9);
-  box-shadow: 0 18px 44px rgba(31, 142, 82, .20);
+  height: 122px;
+  width: 166px;
+  border: 1px solid rgba(37, 99, 235, .16);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 20px 54px rgba(37, 99, 235, .18);
+  backdrop-filter: blur(12px);
 }
 .pet-bubble {
   position: absolute;
-  left: -14px;
-  bottom: 128px;
-  width: 190px;
+  left: -18px;
+  bottom: 132px;
+  width: 205px;
   border: 4px solid #123f2a;
-  background: #f5fff9;
+  background: #f6fff9;
   color: #123f2a;
   padding: 10px 12px;
   font-size: 12px;
   font-weight: 900;
-  box-shadow: 6px 6px 0 rgba(18, 63, 42, .16);
+  box-shadow: 7px 7px 0 rgba(18, 63, 42, .16);
+}
+.chat-card {
+  position: absolute;
+  left: -30px;
+  bottom: 142px;
+  width: 230px;
+  border: 1px solid #bfdbfe;
+  border-radius: 22px;
+  background: rgba(255,255,255,.96);
+  padding: 12px;
+  box-shadow: 0 22px 55px rgba(37,99,235,.18);
+}
+.chat-title {
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 950;
+}
+.chat-line {
+  margin-top: 8px;
+  border-radius: 16px;
+  background: #eff6ff;
+  padding: 10px;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 800;
+}
+.quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.quick-row button,
+.chat-input button {
+  border-radius: 999px;
+  background: #2563eb;
+  color: white;
+  padding: 6px 9px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.chat-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-top: 8px;
+}
+.chat-input input {
+  min-width: 0;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12px;
+  outline: none;
 }
 .pet {
   position: absolute;
   right: 24px;
-  bottom: 36px;
+  bottom: 38px;
   width: 58px;
   height: 50px;
   border: 4px solid #123f2a;
@@ -400,5 +493,11 @@ defineExpose({ poke, say })
   0% { opacity: 0; transform: translate(0, 0) rotate(20deg); }
   30% { opacity: 1; }
   100% { opacity: 0; transform: translate(-38px, 28px) rotate(20deg); }
+}
+@media (max-width: 760px) {
+  .chat-card {
+    left: -22px;
+    width: 214px;
+  }
 }
 </style>
