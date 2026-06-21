@@ -36,6 +36,14 @@ export async function updatePassword(password) {
   return data
 }
 
+export async function sendPasswordReset(email) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth`,
+  })
+  if (error) throw error
+  return data
+}
+
 export async function updateProfile(profile) {
   const user = await requireUser()
   const { data, error } = await supabase

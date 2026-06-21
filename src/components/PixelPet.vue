@@ -40,7 +40,6 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 const mood = ref('idle')
 const message = ref('')
 const isAway = ref(false)
-const watering = ref(false)
 const x = ref(0)
 const direction = ref('face-right')
 let walkTimer
@@ -48,7 +47,7 @@ let awayTimer
 let returnTimer
 
 function replyFromText(text = '') {
-  if (/累|难|崩|烦|低落|哭|emo/i.test(text)) return '我看到了，今天先慢一点也可以。'
+  if (/累|难|烦|低落|哭|emo/i.test(text)) return '我看到了，今天先慢一点也可以。'
   if (/开心|快乐|成功|完成|庆祝|棒/i.test(text)) return '这条很闪亮，我要给你鼓掌。'
   if (/学习|考试|作业|背|读/i.test(text)) return '学习痕迹已收下，继续稳稳前进。'
   if (/运动|跑步|健身|走路/i.test(text)) return '身体也在认真哒咔，真不错。'
@@ -58,18 +57,16 @@ function replyFromText(text = '') {
 
 function say(text) {
   message.value = text
-  setTimeout(() => {
+  window.setTimeout(() => {
     message.value = ''
   }, 2600)
 }
 
 function poke() {
   mood.value = 'happy'
-  watering.value = true
   say(['你好呀，今天也要哒咔。', '我在看你的记录呢。', '我给蓝色玫瑰浇水啦。'][Math.floor(Math.random() * 3)])
-  setTimeout(() => {
+  window.setTimeout(() => {
     mood.value = 'idle'
-    watering.value = false
   }, 1800)
 }
 
@@ -80,14 +77,14 @@ function showTravelMessage() {
 function startWalking() {
   walkTimer = window.setInterval(() => {
     if (isAway.value) return
-    const next = Math.max(-28, Math.min(28, x.value + (Math.random() > 0.5 ? 10 : -10)))
+    const next = Math.max(-24, Math.min(24, x.value + (Math.random() > 0.5 ? 10 : -10)))
     direction.value = next >= x.value ? 'face-right' : 'face-left'
     x.value = next
     mood.value = 'walking'
-    setTimeout(() => {
+    window.setTimeout(() => {
       if (!isAway.value) mood.value = 'idle'
     }, 650)
-  }, 3600)
+  }, 3800)
 }
 
 function scheduleTrips() {
@@ -99,11 +96,11 @@ function scheduleTrips() {
       x.value = 0
       mood.value = 'happy'
       say('我回来啦，带了一点风。')
-      setTimeout(() => {
+      window.setTimeout(() => {
         mood.value = 'idle'
       }, 1800)
     }, 7000)
-  }, 52000)
+  }, 60000)
 }
 
 function readPendingComment() {
@@ -111,11 +108,9 @@ function readPendingComment() {
   if (!text) return
   localStorage.removeItem('dakaba-pet-comment')
   mood.value = 'happy'
-  watering.value = /玫瑰|花/.test(text)
   say(replyFromText(text))
-  setTimeout(() => {
+  window.setTimeout(() => {
     mood.value = 'idle'
-    watering.value = false
   }, 2200)
 }
 
@@ -139,8 +134,8 @@ defineExpose({ poke, say })
 <style scoped>
 .pet-wrap {
   position: fixed;
-  right: 24px;
-  top: 112px;
+  left: min(68vw, calc(50% + 330px));
+  top: 138px;
   z-index: 45;
   transition: transform .7s steps(3);
 }
@@ -156,15 +151,15 @@ defineExpose({ poke, say })
   height: 118px;
   width: 162px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, .88);
+  background: rgba(255, 255, 255, .9);
   box-shadow: 0 18px 44px rgba(31, 142, 82, .20);
   backdrop-filter: blur(14px);
 }
 
 .pet-bubble {
   position: absolute;
-  right: 0;
-  top: 128px;
+  left: -18px;
+  top: 130px;
   width: 190px;
   border: 4px solid #123f2a;
   background: #f5fff9;
@@ -197,6 +192,7 @@ defineExpose({ poke, say })
   border-bottom: 0;
   background: #5ee48b;
 }
+
 .ear-l { left: 7px; }
 .ear-r { right: 7px; }
 .eye {
@@ -339,9 +335,10 @@ defineExpose({ poke, say })
 }
 @media (max-width: 760px) {
   .pet-wrap {
-    right: 12px;
-    top: 82px;
-    transform: scale(.86) !important;
+    left: auto;
+    right: 44px;
+    top: 112px;
+    transform: scale(.82) !important;
     transform-origin: top right;
   }
 }

@@ -3,17 +3,6 @@
     <h1 class="mb-5 text-2xl font-bold">设置</h1>
     <section class="card divide-y divide-black/10 dark:divide-white/10">
       <button class="flex w-full items-center justify-between py-4" @click="toggleTheme"><span>主题切换</span><span>{{ settings.theme === 'dark' ? '暗黑' : '日间' }}</span></button>
-      <div class="py-4">
-        <div class="mb-3 flex items-center justify-between">
-          <span>界面模式</span>
-          <MonitorSmartphone class="h-5 w-5" />
-        </div>
-        <div class="grid grid-cols-3 gap-2">
-          <button v-for="mode in displayModes" :key="mode.value" class="tap rounded-lg px-3 py-2 text-sm font-bold" :class="settings.displayMode === mode.value ? 'bg-blue-500 text-white' : 'bg-blue-50 text-blue-700'" @click="setMode(mode.value)">
-            {{ mode.label }}
-          </button>
-        </div>
-      </div>
       <button class="flex w-full items-center justify-between py-4" @click="clearCache"><span>缓存清理</span><Trash2 class="h-5 w-5" /></button>
       <button class="flex w-full items-center justify-between py-4" @click="exportData"><span>数据导出</span><Download class="h-5 w-5" /></button>
       <RouterLink to="/admin" class="flex items-center justify-between py-4"><span>统计面板</span><Shield class="h-5 w-5" /></RouterLink>
@@ -31,7 +20,7 @@
 </template>
 
 <script setup>
-import { Download, LogOut, MonitorSmartphone, Shield, Trash2 } from '@lucide/vue'
+import { Download, LogOut, Shield, Trash2 } from '@lucide/vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import BottomNav from '../components/BottomNav.vue'
@@ -42,11 +31,6 @@ import { useSettingsStore } from '../stores/settings'
 const settings = useSettingsStore()
 const router = useRouter()
 const toast = ref('')
-const displayModes = [
-  { label: '自动', value: 'auto' },
-  { label: '手机', value: 'mobile' },
-  { label: '电脑', value: 'desktop' },
-]
 
 function clearCache() {
   localStorage.removeItem('dakaba-draft')
@@ -60,11 +44,6 @@ function exportData() {
 function toggleTheme() {
   settings.toggleTheme()
   toast.value = '主题已切换'
-}
-
-function setMode(mode) {
-  settings.setDisplayMode(mode)
-  toast.value = '界面模式已更新'
 }
 
 async function logout() {

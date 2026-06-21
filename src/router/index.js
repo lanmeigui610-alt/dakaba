@@ -19,7 +19,7 @@ const routes = [
   { path: '/publish', name: 'publish', component: Publish, meta: { requiresAuth: true } },
   { path: '/profile', name: 'profile', component: Profile, meta: { requiresAuth: true } },
   { path: '/settings', name: 'settings', component: Settings, meta: { requiresAuth: true } },
-  { path: '/admin', name: 'admin', component: AdminStats, meta: { requiresAuth: true } },
+  { path: '/admin', name: 'admin', component: AdminStats },
 ]
 
 const router = createRouter({

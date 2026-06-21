@@ -5,3 +5,9 @@ export async function getAdminStats() {
   if (error) throw error
   return data
 }
+
+export async function getAdminUsers() {
+  const { data, error } = await supabase.rpc('get_admin_users')
+  if (error) throw error
+  return data || []
+}
