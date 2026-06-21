@@ -63,7 +63,7 @@ export async function createMoment({ body, mediaFiles, visibility, mood, tags })
       tags,
       published_at: new Date().toISOString(),
     })
-    .select('*, profiles(nickname, avatar_url)')
+    .select('*, profiles!moments_user_id_fkey(nickname, avatar_url)')
     .single()
   if (error) throw new Error(`动态发布失败：${error.message}`)
   return data
@@ -73,7 +73,7 @@ export async function listMoments({ month, tag, includePrivate = true } = {}) {
   const user = await requireUser()
   let query = supabase
     .from('moments')
-    .select('*, profiles(nickname, avatar_url), moment_likes(user_id), comments(id)')
+    .select('*, profiles!moments_user_id_fkey(nickname, avatar_url), moment_likes(user_id), comments(id)')
     .or(includePrivate ? `visibility.eq.public,user_id.eq.${user.id}` : 'visibility.eq.public')
     .order('published_at', { ascending: false })
 
@@ -104,7 +104,7 @@ export async function createComment(momentId, body) {
   const { data, error } = await supabase
     .from('comments')
     .insert({ moment_id: momentId, user_id: user.id, body })
-    .select('*, profiles(nickname, avatar_url)')
+    .select('*, profiles!comments_user_id_fkey(nickname, avatar_url)')
     .single()
   if (error) throw error
   return data
