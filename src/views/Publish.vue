@@ -59,6 +59,7 @@
       </button>
     </form>
   </main>
+  <PixelPet />
   <BottomNav />
 </template>
 
@@ -67,6 +68,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Globe2, ImagePlus, Lock } from '@lucide/vue'
 import BottomNav from '../components/BottomNav.vue'
+import PixelPet from '../components/PixelPet.vue'
 import { createMoment } from '../api/feed'
 
 const router = useRouter()
@@ -109,6 +111,7 @@ async function submit() {
       mood: mood.value,
       tags: tagText.value.split(/[,，]/).map((item) => item.trim()).filter(Boolean),
     })
+    localStorage.setItem('dakaba-pet-comment', `${body.value} ${mood.value}`)
     successMessage.value = '发布成功'
     router.push('/feed')
   } catch (error) {

@@ -1,12 +1,12 @@
 <template>
-  <main class="safe-bottom mx-auto max-w-md px-4 py-5">
-    <header class="mb-5">
-      <h1 class="text-2xl font-black">任务中心</h1>
-      <p class="text-sm text-zinc-500 dark:text-zinc-400">打卡任务、待办事项、临时清单分开管理。</p>
+  <main class="safe-bottom mx-auto px-4 py-5 lg:px-8">
+    <header class="mb-5 rounded-[28px] border border-blue-100 bg-white/85 p-5 shadow-soft backdrop-blur-xl">
+      <h1 class="text-2xl font-black text-slate-900">任务中心</h1>
+      <p class="text-sm text-slate-500">打卡任务、待办事项、临时清单分开管理。</p>
     </header>
 
     <section class="mb-4 grid grid-cols-3 gap-2">
-      <button v-for="tab in tabs" :key="tab.key" class="tap rounded-lg border px-3 py-2 text-sm font-bold" :class="activeTab === tab.key ? 'border-pixel bg-pixel text-zinc-950' : 'border-black/10 bg-white dark:border-white/10 dark:bg-zinc-900'" @click="activeTab = tab.key">
+      <button v-for="tab in tabs" :key="tab.key" class="tap rounded-2xl border px-3 py-3 text-sm font-bold" :class="activeTab === tab.key ? 'border-blue-400 bg-blue-500 text-white shadow-soft' : 'border-blue-100 bg-white/80 text-blue-700'" @click="activeTab = tab.key">
         {{ tab.label }}
       </button>
     </section>
@@ -15,24 +15,25 @@
       <div class="mb-3 flex items-center justify-between">
         <div>
           <h2 class="font-bold">{{ currentTitle }}</h2>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ currentHint }}</p>
+          <p class="text-xs text-slate-500">{{ currentHint }}</p>
         </div>
-        <span class="rounded bg-zinc-100 px-2 py-1 text-xs dark:bg-zinc-800">{{ unfinishedCount }} 未完成</span>
+        <span class="rounded-2xl bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">{{ unfinishedCount }} 未完成</span>
       </div>
       <div class="flex gap-2">
-        <input v-model="newTask" class="min-w-0 flex-1 rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" :placeholder="placeholder" @keydown.enter="addTask" />
-        <button class="tap rounded-lg bg-zinc-950 px-4 text-sm font-bold text-white dark:bg-white dark:text-zinc-950" @click="addTask">加</button>
+        <input v-model="newTask" class="min-w-0 flex-1 rounded-2xl border border-blue-100 bg-white px-3 py-3 outline-none focus:border-blue-400" :placeholder="placeholder" @keydown.enter="addTask" />
+        <button class="tap rounded-2xl bg-blue-500 px-5 text-sm font-bold text-white" @click="addTask">加</button>
       </div>
+      <p v-if="toast" class="mt-3 rounded-2xl bg-green-50 px-3 py-2 text-sm font-bold text-green-700">{{ toast }}</p>
     </section>
 
-    <section class="space-y-3">
+    <section class="grid gap-3 lg:grid-cols-2">
       <label v-for="task in filteredTasks" :key="task.id" class="card tap flex items-center gap-3">
-        <input type="checkbox" :checked="task.completed" class="h-5 w-5 accent-green-500" @change="complete(task)" />
+        <input type="checkbox" :checked="task.completed" class="h-5 w-5 accent-blue-500" @change="complete(task)" />
         <div class="min-w-0 flex-1">
           <p class="font-semibold" :class="{ 'line-through opacity-50': task.completed }">{{ task.title }}</p>
-          <p class="text-xs text-zinc-500 dark:text-zinc-400">{{ task.meta }}</p>
+          <p class="text-xs text-slate-500">{{ task.meta }}</p>
         </div>
-        <span class="rounded bg-zinc-100 px-2 py-1 text-xs dark:bg-zinc-800">{{ task.typeLabel }}</span>
+        <span class="rounded-2xl bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{{ task.typeLabel }}</span>
       </label>
     </section>
   </main>
@@ -50,6 +51,7 @@ const today = new Date().toISOString().slice(0, 10)
 const activeTab = ref('checkin')
 const newTask = ref('')
 const plans = ref([])
+const toast = ref('')
 const localTasks = ref([
   { id: 'todo-1', title: '整理 Supabase 配置', completed: false, type: 'todo', meta: '一次性待办', typeLabel: '待办' },
   { id: 'idea-1', title: '记录一个产品灵感', completed: false, type: 'temp', meta: '随手事项', typeLabel: '临时' },
@@ -68,7 +70,6 @@ const checkinTasks = computed(() => plans.value.map((plan) => ({
   meta: '每日重复',
   typeLabel: '打卡',
 })))
-
 const allTasks = computed(() => [...checkinTasks.value, ...localTasks.value])
 const filteredTasks = computed(() => allTasks.value.filter((task) => task.type === activeTab.value))
 const unfinishedCount = computed(() => filteredTasks.value.filter((task) => !task.completed).length)
@@ -89,7 +90,10 @@ onMounted(async () => {
 })
 
 async function addTask() {
-  if (!newTask.value.trim()) return
+  if (!newTask.value.trim()) {
+    toast.value = '先写一点内容吧。'
+    return
+  }
   if (activeTab.value === 'checkin') {
     plans.value.push(await createPlan(newTask.value.trim(), today))
   } else {
@@ -102,6 +106,7 @@ async function addTask() {
       typeLabel: activeTab.value === 'todo' ? '待办' : '临时',
     })
   }
+  toast.value = '已添加'
   newTask.value = ''
 }
 

@@ -24,7 +24,8 @@
         <input v-model="form.avatar_url" class="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="头像链接" />
         <input v-model="form.nickname" class="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="昵称" />
         <textarea v-model="form.bio" rows="3" class="w-full resize-none rounded-lg border border-black/10 bg-transparent px-3 py-2 outline-none dark:border-white/10" placeholder="个人签名"></textarea>
-        <button class="tap w-full rounded-lg bg-pixel py-3 font-bold text-zinc-950" @click="save">保存资料</button>
+        <p v-if="message" class="rounded-lg bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">{{ message }}</p>
+        <button class="tap w-full rounded-lg bg-blue-500 py-3 font-bold text-white disabled:opacity-60" :disabled="saving" @click="save">{{ saving ? '保存中...' : '保存资料' }}</button>
       </div>
     </section>
 
@@ -36,6 +37,7 @@
       </RouterLink>
     </section>
   </main>
+  <PixelPet />
   <BottomNav />
 </template>
 
@@ -43,6 +45,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { CalendarCheck, Images, ListChecks, Settings, Trophy, UserRound } from '@lucide/vue'
 import BottomNav from '../components/BottomNav.vue'
+import PixelPet from '../components/PixelPet.vue'
 import { supabase } from '../lib/supabase'
 import { updateProfile } from '../api/auth'
 import { listPlans } from '../api/plans'
@@ -53,6 +56,8 @@ const avatar = 'https://api.dicebear.com/9.x/pixel-art/svg?seed=dakaba-profile'
 const form = reactive({ avatar_url: '', nickname: '', bio: '' })
 const plans = ref([])
 const moments = ref([])
+const saving = ref(false)
+const message = ref('')
 
 const stats = computed(() => [
   { label: '完成', value: plans.value.filter((item) => item.completed).length },
@@ -79,6 +84,16 @@ onMounted(async () => {
 })
 
 async function save() {
-  await updateProfile(form)
+  saving.value = true
+  message.value = ''
+  try {
+    const updated = await updateProfile(form)
+    Object.assign(form, updated || {})
+    message.value = '资料已保存'
+  } catch (error) {
+    message.value = error?.message || '保存失败，请稍后再试'
+  } finally {
+    saving.value = false
+  }
 }
 </script>

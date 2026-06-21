@@ -2,12 +2,12 @@
   <div class="pet-wrap" :style="{ transform: `translateX(${x}px)` }">
     <div v-if="message" class="pet-bubble">{{ message }}</div>
 
-    <button v-if="isAway" class="sign tap" @click="showTravelMessage" aria-label="宠物留言牌">
+    <button v-if="isAway" class="sign tap" type="button" @click="showTravelMessage" aria-label="宠物留言牌">
       <span class="sign-board">!</span>
       <span class="sign-stick"></span>
     </button>
 
-    <button v-else class="pet-button tap" @click="poke" aria-label="绿色像素宠物">
+    <button v-else class="pet-button tap" type="button" @click="poke" aria-label="绿色像素宠物">
       <div class="pet-stage">
         <div :class="['pet pixelated', mood, direction]">
           <span class="ear ear-l"></span>
@@ -19,6 +19,14 @@
           <span class="mouth"></span>
           <span class="foot foot-l"></span>
           <span class="foot foot-r"></span>
+        </div>
+        <div class="rose-pot">
+          <span class="stem"></span>
+          <span class="leaf leaf-a"></span>
+          <span class="leaf leaf-b"></span>
+          <span class="rose"></span>
+          <span class="pot"></span>
+          <span v-for="drop in 4" :key="drop" class="water" :style="{ '--i': drop }"></span>
         </div>
         <div class="pet-shadow"></div>
       </div>
@@ -32,39 +40,54 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
 const mood = ref('idle')
 const message = ref('')
 const isAway = ref(false)
+const watering = ref(false)
 const x = ref(0)
 const direction = ref('face-right')
 let walkTimer
 let awayTimer
 let returnTimer
 
-function poke() {
-  mood.value = 'happy'
-  message.value = ['😊 你好呀，今天也要哒咔。', '🌿 我是一颗会散步的小绿点。', '💪 完成一个任务，我就蹦一下。'][Math.floor(Math.random() * 3)]
-  setTimeout(() => {
-    mood.value = 'idle'
-    message.value = ''
-  }, 1800)
+function replyFromText(text = '') {
+  if (/累|难|崩|烦|低落|哭|emo/i.test(text)) return '我看到了，今天先慢一点也可以。'
+  if (/开心|快乐|成功|完成|庆祝|棒/i.test(text)) return '这条很闪亮，我要给你鼓掌。'
+  if (/学习|考试|作业|背|读/i.test(text)) return '学习痕迹已收下，继续稳稳前进。'
+  if (/运动|跑步|健身|走路/i.test(text)) return '身体也在认真哒咔，真不错。'
+  if (/玫瑰|花/i.test(text)) return '我给蓝色玫瑰也浇了一点水。'
+  return '我读完啦，这条朋友圈很有生活感。'
 }
 
-function showTravelMessage() {
-  message.value = '🌍 我去环游世界喽，别想我哦'
+function say(text) {
+  message.value = text
   setTimeout(() => {
     message.value = ''
   }, 2600)
 }
 
+function poke() {
+  mood.value = 'happy'
+  watering.value = true
+  say(['你好呀，今天也要哒咔。', '我在看你的记录呢。', '我给蓝色玫瑰浇水啦。'][Math.floor(Math.random() * 3)])
+  setTimeout(() => {
+    mood.value = 'idle'
+    watering.value = false
+  }, 1800)
+}
+
+function showTravelMessage() {
+  say('我去环游世界喽，别想我哦')
+}
+
 function startWalking() {
   walkTimer = window.setInterval(() => {
     if (isAway.value) return
-    const next = Math.max(-36, Math.min(28, x.value + (Math.random() > 0.5 ? 12 : -12)))
+    const next = Math.max(-28, Math.min(28, x.value + (Math.random() > 0.5 ? 10 : -10)))
     direction.value = next >= x.value ? 'face-right' : 'face-left'
     x.value = next
     mood.value = 'walking'
     setTimeout(() => {
       if (!isAway.value) mood.value = 'idle'
     }, 650)
-  }, 2600)
+  }, 3600)
 }
 
 function scheduleTrips() {
@@ -75,34 +98,49 @@ function scheduleTrips() {
       isAway.value = false
       x.value = 0
       mood.value = 'happy'
-      message.value = '🌹 我回来啦，带了一点风。'
+      say('我回来啦，带了一点风。')
       setTimeout(() => {
         mood.value = 'idle'
-        message.value = ''
       }, 1800)
-    }, 9000)
-  }, 22000)
+    }, 7000)
+  }, 52000)
+}
+
+function readPendingComment() {
+  const text = localStorage.getItem('dakaba-pet-comment')
+  if (!text) return
+  localStorage.removeItem('dakaba-pet-comment')
+  mood.value = 'happy'
+  watering.value = /玫瑰|花/.test(text)
+  say(replyFromText(text))
+  setTimeout(() => {
+    mood.value = 'idle'
+    watering.value = false
+  }, 2200)
 }
 
 onMounted(() => {
   startWalking()
   scheduleTrips()
+  readPendingComment()
+  window.addEventListener('focus', readPendingComment)
 })
 
 onBeforeUnmount(() => {
   window.clearInterval(walkTimer)
   window.clearInterval(awayTimer)
   window.clearTimeout(returnTimer)
+  window.removeEventListener('focus', readPendingComment)
 })
 
-defineExpose({ poke })
+defineExpose({ poke, say })
 </script>
 
 <style scoped>
 .pet-wrap {
   position: fixed;
-  right: 18px;
-  bottom: 92px;
+  right: 24px;
+  top: 112px;
   z-index: 45;
   transition: transform .7s steps(3);
 }
@@ -115,21 +153,19 @@ defineExpose({ poke })
 
 .pet-stage {
   position: relative;
-  display: grid;
-  height: 104px;
-  width: 104px;
-  place-items: center;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, .76);
-  box-shadow: 0 18px 42px rgba(31, 142, 82, .22);
+  height: 118px;
+  width: 162px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 18px 44px rgba(31, 142, 82, .20);
   backdrop-filter: blur(14px);
 }
 
 .pet-bubble {
   position: absolute;
   right: 0;
-  bottom: 112px;
-  width: 180px;
+  top: 128px;
+  width: 190px;
   border: 4px solid #123f2a;
   background: #f5fff9;
   color: #123f2a;
@@ -140,7 +176,9 @@ defineExpose({ poke })
 }
 
 .pet {
-  position: relative;
+  position: absolute;
+  right: 24px;
+  bottom: 36px;
   width: 58px;
   height: 50px;
   border: 4px solid #123f2a;
@@ -159,7 +197,6 @@ defineExpose({ poke })
   border-bottom: 0;
   background: #5ee48b;
 }
-
 .ear-l { left: 7px; }
 .ear-r { right: 7px; }
 .eye {
@@ -198,9 +235,66 @@ defineExpose({ poke })
 }
 .foot-l { left: 8px; }
 .foot-r { right: 8px; }
+.rose-pot {
+  position: absolute;
+  left: 22px;
+  bottom: 20px;
+  width: 48px;
+  height: 72px;
+}
+.stem {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  width: 5px;
+  height: 36px;
+  background: #17945c;
+}
+.leaf {
+  position: absolute;
+  width: 16px;
+  height: 10px;
+  border-radius: 100% 0 100% 0;
+  background: #31c978;
+}
+.leaf-a { left: 7px; bottom: 38px; transform: rotate(-28deg); }
+.leaf-b { right: 3px; bottom: 31px; transform: rotate(30deg); }
+.rose {
+  position: absolute;
+  left: 14px;
+  top: 7px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #4aa3ff;
+  box-shadow: -5px 0 0 #1d7dff, 5px 0 0 #7cc7ff, 0 -5px 0 #9bd7ff, 0 5px 0 #0d68dd;
+}
+.pot {
+  position: absolute;
+  left: 8px;
+  bottom: 0;
+  width: 34px;
+  height: 22px;
+  border-radius: 4px 4px 10px 10px;
+  background: linear-gradient(#a7734b, #70452d);
+}
+.water {
+  position: absolute;
+  left: calc(62px + var(--i) * 5px);
+  top: 24px;
+  width: 4px;
+  height: 8px;
+  border-radius: 999px;
+  background: #45b7ff;
+  opacity: 0;
+}
+.pet-stage:has(.happy) .water {
+  animation: water-drop .75s ease-in-out calc(var(--i) * .08s) 2;
+}
 .pet-shadow {
   position: absolute;
-  bottom: 18px;
+  right: 28px;
+  bottom: 24px;
   height: 8px;
   width: 48px;
   border-radius: 999px;
@@ -243,11 +337,12 @@ defineExpose({ poke })
   background: #8b5a32;
   box-shadow: inset -3px 0 0 #5a3a22;
 }
-@media (min-width: 900px) {
-  :global(.mode-auto) .pet-wrap,
-  :global(.mode-desktop) .pet-wrap {
-    right: 34px;
-    bottom: 34px;
+@media (max-width: 760px) {
+  .pet-wrap {
+    right: 12px;
+    top: 82px;
+    transform: scale(.86) !important;
+    transform-origin: top right;
   }
 }
 @keyframes idle {
@@ -263,5 +358,10 @@ defineExpose({ poke })
   0%, 100% { transform: translateY(0) rotate(0); }
   40% { transform: translateY(-14px) rotate(-4deg); }
   70% { transform: translateY(-6px) rotate(4deg); }
+}
+@keyframes water-drop {
+  0% { opacity: 0; transform: translate(0, 0) rotate(20deg); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-38px, 28px) rotate(20deg); }
 }
 </style>

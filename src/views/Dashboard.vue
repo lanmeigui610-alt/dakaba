@@ -1,11 +1,11 @@
 ﻿<template>
   <main class="safe-bottom mx-auto px-4 py-5 lg:px-8">
-    <header class="mb-5 overflow-hidden rounded-[28px] bg-zinc-950 px-5 pb-5 pt-5 text-white shadow-soft dark:bg-black lg:px-7">
+    <header class="mb-5 overflow-hidden rounded-[28px] border border-blue-100 bg-[linear-gradient(135deg,#ffffff,#eaf5ff_48%,#dff0ff)] px-5 pb-5 pt-5 text-slate-900 shadow-soft lg:px-7">
       <div class="flex items-start justify-between">
         <div>
-          <p class="text-sm text-zinc-400">DakaBa</p>
+          <p class="text-sm font-bold text-blue-500">DakaBa</p>
           <h1 class="mt-1 text-4xl font-black tracking-normal lg:text-6xl">哒咔Ba</h1>
-          <p class="mt-2 text-sm text-zinc-300">打卡、数日、待办、日记和朋友圈都在这里。</p>
+          <p class="mt-2 text-sm text-slate-500">打卡、数日、待办、日记和朋友圈都在这里。</p>
         </div>
         <RouterLink to="/profile" class="tap h-12 w-12 overflow-hidden rounded-lg border border-white/15 bg-white/10">
           <img :src="avatar" class="h-full w-full object-cover" alt="" />
@@ -13,16 +13,16 @@
       </div>
 
       <div class="mt-5 grid grid-cols-3 gap-2">
-        <div class="rounded-lg bg-white/10 p-3">
-          <p class="text-xs text-zinc-400">今日完成</p>
+        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
+          <p class="text-xs text-slate-500">今日完成</p>
           <p class="mt-1 text-2xl font-black">{{ completedCount }}</p>
         </div>
-        <div class="rounded-lg bg-white/10 p-3">
-          <p class="text-xs text-zinc-400">连续打卡</p>
+        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
+          <p class="text-xs text-slate-500">连续打卡</p>
           <p class="mt-1 text-2xl font-black">12</p>
         </div>
-        <div class="rounded-lg bg-white/10 p-3">
-          <p class="text-xs text-zinc-400">累计记录</p>
+        <div class="rounded-2xl bg-white/70 p-3 shadow-sm">
+          <p class="text-xs text-slate-500">累计记录</p>
           <p class="mt-1 text-2xl font-black">38</p>
         </div>
       </div>
