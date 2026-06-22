@@ -16,8 +16,50 @@
           <strong>{{ progressPercent }}%</strong>
           <div><i :style="{ width: progressPercent + '%' }"></i></div>
         </div>
-        <div class="floating-note note-a">公开动态可点赞评论</div>
-        <div class="floating-note note-b">私密记录只给自己看</div>
+      </div>
+    </section>
+
+    <section class="feedback-wall mb-4">
+      <div class="feedback-head">
+        <div class="feedback-title-block">
+          <span class="feedback-icon">留言</span>
+          <div>
+            <p class="hero-kicker">Message to MEIGL</p>
+            <h2>有什么想对开发者说?</h2>
+            <p>建议、吐槽、喜欢的点，都可以写在这里。</p>
+          </div>
+        </div>
+        <span class="feedback-badge">公开建议墙</span>
+      </div>
+
+      <div class="feedback-compose">
+        <div class="compose-box">
+          <label>写给开发者</label>
+          <textarea v-model="feedbackText" rows="4" placeholder="例如：希望宠物可以换装，或者朋友圈图片排版更像微信..." />
+        </div>
+        <button class="feedback-send" type="button" :disabled="feedbackSaving || !feedbackText.trim()" @click="sendFeedback">
+          <span>{{ feedbackSaving ? '发送中...' : '发送给 MEIGL' }}</span>
+          <small>回复会显示在这里</small>
+        </button>
+      </div>
+      <p v-if="feedbackToast" class="feedback-toast" :class="{ error: feedbackToastType === 'error' }">{{ feedbackToast }}</p>
+
+      <div class="feedback-list">
+        <article v-for="item in feedbackList" :key="item.id" class="feedback-item">
+          <div class="feedback-user">
+            <img :src="item.profiles?.avatar_url || fallbackAvatar" alt="" />
+            <div>
+              <b>{{ item.profiles?.nickname || '哒咔用户' }}</b>
+              <span>{{ formatShortTime(item.created_at) }}</span>
+            </div>
+          </div>
+          <p>{{ item.body }}</p>
+          <div v-if="item.reply" class="developer-reply">
+            <strong>MEIGL 回复</strong>
+            <span>{{ item.reply }}</span>
+          </div>
+        </article>
+        <p v-if="!feedbackList.length" class="feedback-empty">还没有留言，第一条就从你开始。</p>
       </div>
     </section>
 
@@ -26,7 +68,7 @@
         <div class="mb-4 flex items-center justify-between gap-3">
           <div>
             <h2 class="text-xl font-black">今日打卡</h2>
-            <p class="text-sm text-slate-500">像微信状态一样轻，像打卡软件一样清楚。</p>
+            <p class="text-sm text-slate-500">哒咔，哒咔</p>
           </div>
           <RouterLink to="/tasks" class="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-black text-white">管理</RouterLink>
         </div>
@@ -94,15 +136,22 @@ import { BookOpenText, Check, ImagePlus, ListTodo, Sparkles } from '@lucide/vue'
 import BottomNav from '../components/BottomNav.vue'
 import PixelPet from '../components/PixelPet.vue'
 import { createPlan, listPlans, togglePlan } from '../api/plans'
+import { createFeedback, listPublicFeedback } from '../api/feedback'
 
+const fallbackAvatar = 'https://api.dicebear.com/9.x/pixel-art/svg?seed=dakaba'
 const today = new Date().toISOString().slice(0, 10)
 const plans = ref([])
 const newPlan = ref('')
 const toast = ref('')
 const toastType = ref('ok')
 const pet = ref(null)
+const feedbackText = ref('')
+const feedbackSaving = ref(false)
+const feedbackToast = ref('')
+const feedbackToastType = ref('ok')
+const feedbackList = ref([])
 const quickLinks = [
-  { title: '生活记录', desc: '像每一迹一样留下日常', to: '/tasks', icon: Sparkles },
+  { title: '生活记录', desc: '点点滴滴都值得记录', to: '/tasks', icon: Sparkles },
   { title: '待办事项', desc: '计划、目标、复盘分开管', to: '/tasks', icon: ListTodo },
   { title: '照片动态', desc: '图片/GIF 自动压缩上传', to: '/publish', icon: ImagePlus },
   { title: '日记心情', desc: '表情、心情、私密记录', to: '/calendar', icon: BookOpenText },
@@ -113,11 +162,37 @@ const progressPercent = computed(() => plans.value.length ? Math.round((complete
 
 onMounted(async () => {
   plans.value = await listPlans(today).catch(() => [])
+  feedbackList.value = await listPublicFeedback().catch(() => [])
 })
 
 function showToast(message, type = 'ok') {
   toast.value = message
   toastType.value = type
+}
+
+function showFeedbackToast(message, type = 'ok') {
+  feedbackToast.value = message
+  feedbackToastType.value = type
+}
+
+async function sendFeedback() {
+  const body = feedbackText.value.trim()
+  if (!body) return
+  feedbackSaving.value = true
+  try {
+    const created = await createFeedback(body)
+    feedbackList.value.unshift({
+      ...created,
+      profiles: { nickname: '我', avatar_url: '' },
+    })
+    feedbackText.value = ''
+    showFeedbackToast('已发送给 MEIGL，回复后会显示在这里。')
+    pet.value?.say?.('我已经把你的留言送到开发者后台啦。')
+  } catch (error) {
+    showFeedbackToast(error?.message || '发送失败，请稍后再试。', 'error')
+  } finally {
+    feedbackSaving.value = false
+  }
 }
 
 async function addPlan() {
@@ -145,6 +220,11 @@ async function complete(plan) {
   } catch (error) {
     showToast(error?.message || '操作失败，请稍后再试。', 'error')
   }
+}
+
+function formatShortTime(value) {
+  if (!value) return ''
+  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 }
 </script>
 
@@ -217,7 +297,7 @@ async function complete(plan) {
   top: 20px;
   width: min(280px, 100%);
   border-radius: 28px;
-  background: #0f172a;
+  background: #00bd5b;
   padding: 22px;
   color: white;
   box-shadow: 0 24px 55px rgba(15,23,42,.22);
@@ -247,19 +327,217 @@ async function complete(plan) {
   background: #7dd3fc;
   transition: width .5s ease;
 }
-.floating-note {
+.feedback-wall {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 189, 91, .24);
+  border-radius: 30px;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0,189,91,.24), transparent 26%),
+    radial-gradient(circle at 92% 18%, rgba(37,99,235,.22), transparent 30%),
+    rgba(255,255,255,.94);
+  padding: 24px;
+  box-shadow: 0 26px 72px rgba(0, 189, 91, .16);
+}
+.feedback-wall::after {
+  content: "";
   position: absolute;
-  border: 1px solid #dbeafe;
+  right: -52px;
+  top: -52px;
+  width: 150px;
+  height: 150px;
+  border: 28px solid rgba(0,189,91,.12);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.feedback-head {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.feedback-title-block {
+  display: flex;
+  align-items: start;
+  gap: 14px;
+}
+.feedback-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  flex: none;
+  place-items: center;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #00bd5b, #3bd985);
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 14px 30px rgba(0,189,91,.22);
+}
+.feedback-head h2 {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: clamp(28px, 5vw, 46px);
+  font-weight: 950;
+}
+.feedback-head p:last-child {
+  margin-top: 8px;
+  max-width: 720px;
+  color: #52708f;
+  line-height: 1.7;
+}
+.feedback-badge {
+  flex: none;
   border-radius: 999px;
-  background: rgba(255,255,255,.9);
-  padding: 10px 14px;
+  background: #00bd5b;
+  padding: 9px 13px;
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+}
+.feedback-compose {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 12px;
+  margin-top: 18px;
+}
+.compose-box {
+  border: 1px solid #dbeafe;
+  border-radius: 24px;
+  background: rgba(255,255,255,.92);
+  padding: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.7);
+}
+.compose-box label {
+  display: block;
+  margin: 0 0 8px 4px;
   color: #2563eb;
   font-size: 12px;
   font-weight: 950;
-  box-shadow: 0 14px 35px rgba(37,99,235,.12);
 }
-.note-a { left: 10px; bottom: 58px; }
-.note-b { right: 38px; bottom: 8px; }
+.feedback-compose textarea {
+  min-width: 0;
+  width: 100%;
+  resize: vertical;
+  border: 0;
+  border-radius: 18px;
+  background: #f8fbff;
+  padding: 14px;
+  outline: none;
+  line-height: 1.7;
+}
+.feedback-compose textarea:focus {
+  box-shadow: 0 0 0 4px rgba(0,189,91,.12);
+}
+.feedback-send {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  align-self: stretch;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2563eb, #00bd5b);
+  padding: 18px;
+  color: white;
+  font-weight: 950;
+  box-shadow: 0 18px 38px rgba(37,99,235,.24);
+}
+.feedback-send span {
+  font-size: 16px;
+}
+.feedback-send small {
+  opacity: .82;
+  font-size: 11px;
+  font-weight: 800;
+}
+.feedback-send:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+.feedback-toast {
+  margin-top: 10px;
+  border-radius: 16px;
+  background: #ecfdf5;
+  padding: 10px 12px;
+  color: #047857;
+  font-size: 13px;
+  font-weight: 800;
+}
+.feedback-toast.error {
+  background: #fff1f2;
+  color: #be123c;
+}
+.feedback-list {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.feedback-item {
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background: rgba(255,255,255,.86);
+  padding: 14px;
+}
+.feedback-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feedback-user img {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+.feedback-user b {
+  display: block;
+  color: #0f172a;
+  font-size: 13px;
+}
+.feedback-user span {
+  color: #7b8aa0;
+  font-size: 11px;
+}
+.feedback-item > p {
+  margin-top: 10px;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.developer-reply {
+  margin-top: 10px;
+  border-radius: 16px;
+  background: #eff6ff;
+  padding: 10px;
+}
+.developer-reply strong {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+}
+.developer-reply span {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.feedback-empty {
+  grid-column: 1 / -1;
+  border-radius: 18px;
+  background: #eff6ff;
+  padding: 18px;
+  text-align: center;
+  color: #2563eb;
+  font-weight: 900;
+}
 .metric {
   border-radius: 22px;
   background: #eff6ff;
@@ -351,6 +629,23 @@ async function complete(plan) {
   .pulse-card {
     left: 0;
     right: auto;
+  }
+}
+@media (max-width: 720px) {
+  .feedback-compose {
+    grid-template-columns: 1fr;
+  }
+  .feedback-head {
+    display: grid;
+  }
+  .feedback-title-block {
+    display: grid;
+  }
+  .feedback-list {
+    grid-template-columns: 1fr;
+  }
+  .feedback-compose button {
+    padding: 14px;
   }
 }
 @media (max-width: 520px) {

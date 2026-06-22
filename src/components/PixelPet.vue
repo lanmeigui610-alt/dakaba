@@ -60,7 +60,7 @@ const direction = ref('face-right')
 const chatOpen = ref(false)
 const chatText = ref('')
 const chatReply = ref('你好呀，我在这里陪你记录生活。')
-const quickChats = ['今天鼓励我', '给玫瑰浇水', '看看朋友圈']
+const quickChats = ['今天鼓励我', '给玫瑰浇水']
 const position = reactive({ x: 720, y: 138 })
 const drag = reactive({ active: false, moved: false, offsetX: 0, offsetY: 0 })
 let walkTimer
@@ -110,13 +110,20 @@ function stopDrag() {
   window.removeEventListener('pointerup', stopDrag)
 }
 
-function replyFromText(text = '') {
-  if (/难过|低落|emo|累|烦|哭/i.test(text)) return '我看到你的情绪了，今天先慢一点也可以。'
-  if (/开心|快乐|成功|完成|庆祝|棒|喜欢/i.test(text)) return '这条很闪亮，我要给你鼓掌，还要给玫瑰多浇一点水。'
-  if (/学习|考试|作业|背|读书/i.test(text)) return '学习痕迹已经收下，稳稳往前走。'
-  if (/运动|跑步|健身|走路/i.test(text)) return '身体也在认真打卡，真不错。'
-  if (/玫瑰|花|蓝色/i.test(text)) return '蓝色玫瑰收到关心啦，我马上浇水。'
-  return '我读完啦，这条朋友圈很有生活感。'
+function replyFromText(rawText = '') {
+  const text = rawText.trim().toLowerCase()
+  if (!text) return '你还没写内容呢，我先在这里等你。'
+  if (/你好|hello|hi|嗨|在吗/.test(text)) return '我在呀。今天想记录一点开心的事，还是想把烦恼藏进秘密花园？'
+  if (/难过|低落|emo|累|烦|哭|崩溃|压力|焦虑|不开心/.test(text)) return '我听见了。今天先不用表现得很厉害，写下一句真实感受就很好。'
+  if (/开心|快乐|成功|完成|庆祝|棒|喜欢|幸福|顺利/.test(text)) return '太好了，这种发光的小事值得记下来。我给蓝色玫瑰多浇一点水。'
+  if (/学习|考试|作业|背书|阅读|复习|课程/.test(text)) return '学习类记录我建议写清楚三件事：做了什么、用了多久、下一步是什么。'
+  if (/运动|跑步|健身|走路|瑜伽|锻炼/.test(text)) return '身体也在打卡呢。记一下运动时长和感觉，之后回看会很有成就感。'
+  if (/日程|计划|待办|任务|安排|todo/.test(text)) return '可以先写一个很小的日程，不要太满。今天完成一页，也算赢。'
+  if (/照片|拍照|图片|相册|朋友圈|动态/.test(text)) return '如果这张照片想被看见，就发公开；如果只是给自己留念，就放进私密记录。'
+  if (/玫瑰|花|蓝色|浇水/.test(text)) return '收到，我已经给蓝色玫瑰浇水啦。它现在看起来很精神。'
+  if (/密码|登录|注册|邮箱|后台/.test(text)) return '账号相关的事要认真一点：用邮箱登录，密码别告诉任何人，后台也不会显示用户密码。'
+  if (/谢谢|感谢|爱你/.test(text)) return '不用谢，我会一直在这里。你负责生活，我负责提醒你别忘了记录。'
+  return `我读到了：“${rawText.slice(0, 18)}”。这件事可以先记下来，等以后回看，你会知道自己怎样一点点走过来的。`
 }
 
 function say(text) {
@@ -137,10 +144,6 @@ function talk(text) {
 
 function sendChat() {
   const text = chatText.value.trim()
-  if (!text) {
-    talk('今天鼓励我')
-    return
-  }
   talk(text)
   chatText.value = ''
 }
@@ -193,12 +196,7 @@ function readPendingComment() {
   const text = localStorage.getItem('dakaba-pet-comment')
   if (!text) return
   localStorage.removeItem('dakaba-pet-comment')
-  chatReply.value = replyFromText(text)
-  mood.value = 'happy'
-  say(chatReply.value)
-  window.setTimeout(() => {
-    mood.value = 'idle'
-  }, 2200)
+  talk(text)
 }
 
 onMounted(() => {
@@ -264,7 +262,7 @@ defineExpose({ poke, say, talk })
   position: absolute;
   left: -30px;
   bottom: 142px;
-  width: 230px;
+  width: 246px;
   border: 1px solid #bfdbfe;
   border-radius: 22px;
   background: rgba(255,255,255,.96);
@@ -284,6 +282,7 @@ defineExpose({ poke, say, talk })
   color: #0f172a;
   font-size: 12px;
   font-weight: 800;
+  line-height: 1.55;
 }
 .quick-row {
   display: flex;
@@ -497,7 +496,7 @@ defineExpose({ poke, say, talk })
 @media (max-width: 760px) {
   .chat-card {
     left: -22px;
-    width: 214px;
+    width: 226px;
   }
 }
 </style>

@@ -34,6 +34,37 @@
         </div>
       </section>
 
+      <section class="feedback-inbox mb-4">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-black text-green-600">Developer Inbox</p>
+            <h2>给 MEIGL 的留言</h2>
+            <p>用户在首页提交的建议会出现在这里。回复后，用户可以在首页建议墙看到你的回复。</p>
+          </div>
+          <span>{{ feedbackItems.length }} 条留言</span>
+        </div>
+
+        <div class="grid gap-3 lg:grid-cols-2">
+          <article v-for="item in feedbackItems" :key="item.id" class="feedback-admin-card">
+            <div class="feedback-user">
+              <img :src="item.avatar_url || fallbackAvatar" alt="" />
+              <div>
+                <b>{{ item.nickname || '哒咔用户' }}</b>
+                <small>{{ item.account || '未公开账号' }} · {{ formatDate(item.created_at) }}</small>
+              </div>
+            </div>
+            <p class="feedback-body">{{ item.body }}</p>
+            <div v-if="item.reply" class="current-reply">
+              <strong>当前回复</strong>
+              <span>{{ item.reply }}</span>
+            </div>
+            <textarea v-model="replyDrafts[item.id]" rows="3" placeholder="回复这条建议..." />
+            <button class="tap" type="button" @click="replyToFeedback(item)">保存回复</button>
+          </article>
+          <p v-if="!feedbackItems.length" class="empty-feedback">还没有收到用户留言。</p>
+        </div>
+      </section>
+
       <section class="card mb-4">
         <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -95,9 +126,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { getAdminStats, getAdminUsers, setUserBan } from '../api/admin'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { getAdminStats, getAdminUsers, listAdminFeedback, replyFeedback, setUserBan } from '../api/admin'
 
+const fallbackAvatar = 'https://api.dicebear.com/9.x/pixel-art/svg?seed=dakaba-admin'
 const authorized = ref(sessionStorage.getItem('dakaba-admin-ok') === '1')
 const pin = ref('')
 const oldPin = ref('')
@@ -107,6 +139,8 @@ const message = ref('')
 const messageType = ref('ok')
 const stats = ref({})
 const users = ref([])
+const feedbackItems = ref([])
+const replyDrafts = reactive({})
 
 const activePin = computed(() => localStorage.getItem('dakaba-admin-pin') || '2641')
 const cards = computed(() => [
@@ -123,6 +157,10 @@ async function load() {
   try {
     stats.value = await getAdminStats(activePin.value).catch(() => ({}))
     users.value = await getAdminUsers(activePin.value)
+    feedbackItems.value = await listAdminFeedback(activePin.value)
+    feedbackItems.value.forEach((item) => {
+      replyDrafts[item.id] = item.reply || ''
+    })
   } catch (err) {
     showMessage(err?.message || '后台数据读取失败，请确认 Supabase 已执行最新 SQL。', 'error')
   }
@@ -159,6 +197,22 @@ function changePin() {
   newPin.value = ''
 }
 
+async function replyToFeedback(item) {
+  const reply = (replyDrafts[item.id] || '').trim()
+  if (!reply) {
+    showMessage('回复内容不能为空。', 'error')
+    return
+  }
+  try {
+    await replyFeedback({ feedbackId: item.id, reply, pin: activePin.value })
+    item.reply = reply
+    item.replied_at = new Date().toISOString()
+    showMessage('已回复用户留言。')
+  } catch (err) {
+    showMessage(err?.message || '回复失败，请确认 Supabase 已执行最新 SQL。', 'error')
+  }
+}
+
 async function toggleBan(user) {
   const next = !user.is_banned
   const oldValue = user.is_banned
@@ -186,7 +240,8 @@ function formatDate(value) {
 <style scoped>
 .admin-login,
 .admin-hero,
-.stat-card {
+.stat-card,
+.feedback-inbox {
   border: 1px solid #dbeafe;
   border-radius: 30px;
   background: rgba(255,255,255,.92);
@@ -220,6 +275,101 @@ function formatDate(value) {
 }
 .admin-hero p {
   color: rgba(255,255,255,.86);
+}
+.feedback-inbox {
+  border-color: rgba(0,189,91,.24);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(0,189,91,.15), transparent 26%),
+    rgba(255,255,255,.94);
+  padding: 22px;
+}
+.feedback-inbox h2 {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: clamp(26px, 5vw, 42px);
+  font-weight: 950;
+}
+.feedback-inbox p {
+  color: #64748b;
+}
+.feedback-inbox > div > span {
+  border-radius: 999px;
+  background: #00bd5b;
+  padding: 9px 13px;
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+}
+.feedback-admin-card {
+  border: 1px solid #dbeafe;
+  border-radius: 22px;
+  background: white;
+  padding: 14px;
+}
+.feedback-user {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.feedback-user img {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+}
+.feedback-user b {
+  display: block;
+  color: #0f172a;
+}
+.feedback-user small {
+  color: #7b8aa0;
+  font-size: 11px;
+}
+.feedback-body {
+  margin-top: 12px;
+  color: #334155;
+  line-height: 1.7;
+}
+.current-reply {
+  margin-top: 10px;
+  border-radius: 16px;
+  background: #eff6ff;
+  padding: 10px;
+}
+.current-reply strong {
+  display: block;
+  color: #2563eb;
+  font-size: 12px;
+}
+.current-reply span {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+}
+.feedback-admin-card textarea {
+  margin-top: 10px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  padding: 11px 12px;
+  outline: none;
+}
+.feedback-admin-card button {
+  margin-top: 8px;
+  border-radius: 16px;
+  background: #00bd5b;
+  padding: 10px 14px;
+  color: white;
+  font-weight: 950;
+}
+.empty-feedback {
+  border-radius: 18px;
+  background: #eff6ff;
+  padding: 20px;
+  text-align: center;
+  color: #2563eb;
+  font-weight: 900;
 }
 .admin-input {
   width: 100%;

@@ -2,7 +2,7 @@
   <main class="safe-bottom mx-auto max-w-md px-4 py-5">
     <header class="mb-5">
       <h1 class="text-2xl font-black">发布记录</h1>
-      <p class="text-sm text-zinc-500 dark:text-zinc-400">先选隐私，再写内容。公开可评论点赞，私密只自己可见。</p>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400">想被看见，还是想藏起来？</p>
     </header>
 
     <form class="space-y-4" @submit.prevent="submit">

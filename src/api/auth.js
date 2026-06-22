@@ -1,10 +1,11 @@
 import { supabase, requireUser } from '../lib/supabase'
 
-export async function signUpWithPhone({ phone, password, nickname, securityQuestion, securityAnswer }) {
-  const credentials = phone.includes('@')
-    ? { email: phone, password, options: { data: { nickname } } }
-    : { phone, password, options: { data: { nickname } } }
-  const { data, error } = await supabase.auth.signUp(credentials)
+export async function signUpWithEmail({ email, password, nickname, securityQuestion, securityAnswer }) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { nickname } },
+  })
   if (error) throw error
   if (data.user) {
     const { error: profileError } = await supabase.from('profiles').upsert({
@@ -23,9 +24,8 @@ export async function signUpWithPhone({ phone, password, nickname, securityQuest
   return data
 }
 
-export async function signInWithPhone({ phone, password }) {
-  const credentials = phone.includes('@') ? { email: phone, password } : { phone, password }
-  const { data, error } = await supabase.auth.signInWithPassword(credentials)
+export async function signInWithEmail({ email, password }) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
   if (error) throw error
   return data
 }
@@ -58,7 +58,7 @@ export async function updateProfile(profile) {
 
 export async function ensureProfile() {
   const user = await requireUser()
-  const nickname = user.user_metadata?.nickname || user.email?.split('@')[0] || user.phone || '哒咔用户'
+  const nickname = user.user_metadata?.nickname || user.email?.split('@')[0] || '哒咔用户'
   const { data, error } = await supabase
     .from('profiles')
     .upsert({ id: user.id, nickname }, { onConflict: 'id' })

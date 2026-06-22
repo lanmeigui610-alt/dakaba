@@ -2,10 +2,10 @@
   <main class="auth-page min-h-screen px-4 py-6">
     <section class="auth-card">
       <div class="brand-panel">
-        <div class="brand-mark">Da</div>
+        <div class="brand-mark">MEIGL</div>
         <p class="brand-kicker">DakaBa</p>
         <h1>哒咔Ba</h1>
-        <p class="brand-copy">像微信一样轻松记录，像每日痕迹一样安静陪伴。打卡、日记、朋友圈和私密记录都在这里。</p>
+        <p class="brand-copy">嘿，今天想Daka什么？我陪你.</p>
         <div class="feature-list">
           <span>朋友圈</span>
           <span>每日计划</span>
@@ -26,8 +26,14 @@
         </div>
 
         <label v-if="mode !== 'reset'">
-          <span>{{ mode === 'recover' ? '注册邮箱' : mode === 'admin' ? '管理员四位密码' : '手机号或邮箱' }}</span>
-          <input v-model="account" :type="mode === 'admin' ? 'password' : 'text'" :maxlength="mode === 'admin' ? 4 : undefined" :placeholder="mode === 'recover' ? '请输入注册邮箱' : mode === 'admin' ? '请输入 4 位管理员密码' : '请输入手机号或邮箱'" autocomplete="username" />
+          <span>{{ mode === 'admin' ? '管理员四位密码' : '邮箱' }}</span>
+          <input
+            v-model="account"
+            :type="mode === 'admin' ? 'password' : 'email'"
+            :maxlength="mode === 'admin' ? 4 : undefined"
+            :placeholder="mode === 'admin' ? '请输入 4 位管理员密码' : '请输入邮箱'"
+            :autocomplete="mode === 'admin' ? 'off' : 'email'"
+          />
         </label>
 
         <label v-if="mode !== 'recover' && mode !== 'admin' && mode !== 'reset'">
@@ -68,7 +74,7 @@
           </label>
           <label>
             <span>答案</span>
-            <input v-model="answer" placeholder="回答正确后，请按邮件链接重设密码" />
+            <input v-model="answer" placeholder="回答后会发送邮箱重置链接" />
           </label>
         </template>
 
@@ -94,7 +100,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PixelPet from '../components/PixelPet.vue'
-import { signInWithPhone, signUpWithPhone, sendPasswordReset, updatePassword } from '../api/auth'
+import { signInWithEmail, signUpWithEmail, sendPasswordReset, updatePassword } from '../api/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -128,10 +134,10 @@ const submitLabel = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  if (mode.value === 'recover') return account.value && question.value && answer.value
+  if (mode.value === 'recover') return isEmail(account.value) && question.value && answer.value
   if (mode.value === 'reset') return newPassword.value && confirmPassword.value
   if (mode.value === 'admin') return account.value.length === 4
-  return account.value && password.value
+  return isEmail(account.value) && password.value
 })
 
 onMounted(() => {
@@ -142,6 +148,10 @@ onMounted(() => {
   }
 })
 
+function isEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
 async function submit() {
   errorMessage.value = ''
   notice.value = ''
@@ -149,7 +159,7 @@ async function submit() {
   try {
     if (mode.value === 'recover') {
       await sendPasswordReset(account.value.trim())
-      notice.value = '已发送重置密码邮件。请打开邮箱链接重设密码；安全问题用于确认你本人在操作。'
+      notice.value = '已发送重置密码邮件。请打开邮箱链接重设密码。'
       return
     }
 
@@ -172,30 +182,30 @@ async function submit() {
       return
     }
 
+    if (!isEmail(account.value)) throw new Error('请输入正确的邮箱地址。')
+
     if (mode.value === 'signin') {
-      await signInWithPhone({ phone: account.value.trim(), password: password.value })
-      router.push(mode.value === 'admin' ? '/admin' : route.query.redirect || '/')
+      await signInWithEmail({ email: account.value.trim(), password: password.value })
+      router.push(route.query.redirect || '/')
       return
     }
 
-    await signUpWithPhone({
-      phone: account.value.trim(),
+    await signUpWithEmail({
+      email: account.value.trim(),
       password: password.value,
       nickname: nickname.value || '哒咔用户',
       securityQuestion: question.value || '我最喜欢的花？',
       securityAnswer: answer.value || '蓝色玫瑰',
     })
-    notice.value = account.value.includes('@')
-      ? '注册成功。如果开启了邮箱确认，请先去邮箱确认后再登录。'
-      : '注册成功，可以登录了。'
+    notice.value = '注册成功。如果开启了邮箱确认，请先去邮箱确认后再登录。'
     mode.value = 'signin'
   } catch (error) {
     const message = error?.message || '操作失败，请稍后再试。'
-    if (/phone provider|Unsupported phone|SMS|signup disabled/i.test(message)) {
-      errorMessage.value = '当前 Supabase 可能没有开启手机号登录。请先用邮箱注册/登录，或去 Supabase 开启 Phone Auth。'
-    } else if (/Invalid login credentials/i.test(message)) {
-      errorMessage.value = '账号或密码不正确。'
-    } else if (/Failed to fetch|fetch|取物失败|Load failed|NetworkError/i.test(message)) {
+    if (/Invalid login credentials/i.test(message)) {
+      errorMessage.value = '邮箱或密码不正确。'
+    } else if (/Email not confirmed/i.test(message)) {
+      errorMessage.value = '请先打开邮箱确认链接，再回来登录。'
+    } else if (/Failed to fetch|fetch|Load failed|NetworkError/i.test(message)) {
       errorMessage.value = '连接 Supabase 失败。请检查网络或 Vercel 环境变量。'
     } else {
       errorMessage.value = message
@@ -253,6 +263,7 @@ async function submit() {
   border-radius: 18px;
   background: white;
   color: #1677ff;
+  font-size: 15px;
   font-weight: 900;
   box-shadow: 0 14px 34px rgba(0, 65, 160, .24);
 }

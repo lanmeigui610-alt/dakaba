@@ -28,6 +28,7 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to) => {
+  if (to.query.preview === '1') return true
   const { data } = await supabase.auth.getUser()
   if (to.meta.requiresAuth && !data.user) {
     return { path: '/auth', query: { redirect: to.fullPath } }

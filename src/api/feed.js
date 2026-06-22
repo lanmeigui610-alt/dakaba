@@ -91,7 +91,21 @@ export async function listMoments({ month, tag, includePrivate = true } = {}) {
   const user = await requireUser()
   let query = supabase
     .from('moments')
-    .select('*, profiles!moments_user_id_fkey(nickname, avatar_url), moment_likes(user_id), comments(id)')
+    .select(`
+      *,
+      profiles!moments_user_id_fkey(nickname, avatar_url),
+      moment_likes(user_id),
+      comments(
+        id,
+        body,
+        emoji,
+        parent_id,
+        created_at,
+        user_id,
+        profiles!comments_user_id_fkey(nickname, avatar_url),
+        comment_likes(user_id)
+      )
+    `)
     .or(includePrivate ? `visibility.eq.public,user_id.eq.${user.id}` : 'visibility.eq.public')
     .order('published_at', { ascending: false })
 
@@ -122,10 +136,36 @@ export async function createComment(momentId, body) {
   const { data, error } = await supabase
     .from('comments')
     .insert({ moment_id: momentId, user_id: user.id, body })
-    .select('*, profiles!comments_user_id_fkey(nickname, avatar_url)')
+    .select('*, profiles!comments_user_id_fkey(nickname, avatar_url), comment_likes(user_id)')
     .single()
   if (error) throw error
   return data
+}
+
+export async function createMomentComment({ momentId, body, emoji, parentId = null }) {
+  const user = await requireUser()
+  const { data, error } = await supabase
+    .from('comments')
+    .insert({
+      moment_id: momentId,
+      user_id: user.id,
+      body,
+      emoji,
+      parent_id: parentId,
+    })
+    .select('*, profiles!comments_user_id_fkey(nickname, avatar_url), comment_likes(user_id)')
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function likeComment(commentId) {
+  const user = await requireUser()
+  const { error } = await supabase.from('comment_likes').upsert({
+    comment_id: commentId,
+    user_id: user.id,
+  })
+  if (error) throw error
 }
 
 export async function exportMomentCard(element, fileName = 'dakaba-moment.png') {

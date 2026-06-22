@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+export { listAdminFeedback, replyFeedback } from './feedback'
 
 export async function getAdminStats(pin) {
   const { data, error } = await supabase.rpc('get_admin_stats', { admin_pin: pin || '2641' })
