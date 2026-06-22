@@ -1,3 +1,12 @@
+-- DakaBa Supabase repair/update script
+-- Run this once in Supabase SQL Editor. It is safe to run repeatedly.
+
+create extension if not exists pgcrypto;
+
+alter table if exists public.profiles
+add column if not exists is_banned boolean not null default false,
+add column if not exists updated_at timestamptz not null default now();
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -6,7 +15,7 @@ set search_path = public
 as $$
 begin
   insert into public.profiles (id, nickname)
-  values (new.id, coalesce(new.raw_user_meta_data ->> 'nickname', '哒咔用户'))
+  values (new.id, coalesce(new.raw_user_meta_data ->> 'nickname', 'DakaBa User'))
   on conflict (id) do nothing;
   return new;
 end;
@@ -18,7 +27,7 @@ after insert on auth.users
 for each row execute function public.handle_new_user();
 
 insert into public.profiles (id, nickname)
-select id, coalesce(raw_user_meta_data ->> 'nickname', '哒咔用户')
+select id, coalesce(raw_user_meta_data ->> 'nickname', 'DakaBa User')
 from auth.users
 on conflict (id) do nothing;
 
@@ -32,7 +41,7 @@ declare
   profile_row public.profiles;
 begin
   insert into public.profiles (id, nickname)
-  values (auth.uid(), '哒咔用户')
+  values (auth.uid(), 'DakaBa User')
   on conflict (id) do nothing;
 
   select * into profile_row
@@ -77,74 +86,7 @@ with check (
   )
 );
 
-create or replace function public.get_admin_stats(admin_pin text default '')
-returns json
-language sql
-security definer
-set search_path = public, auth
-as $$
-  select case
-    when admin_pin <> '2641' then json_build_object('error', '管理员密码不正确')
-    else json_build_object(
-      'total_users', (select count(*) from auth.users),
-      'today_active_users', (select count(*) from auth.users where last_sign_in_at::date = now()::date),
-      'total_checkins', (select count(*) from public.plans where completed = true),
-      'storage_mb', 0
-    )
-  end;
-$$;
-
-create or replace function public.get_admin_users(admin_pin text default '')
-returns table (
-  user_id uuid,
-  account text,
-  nickname text,
-  created_at timestamptz,
-  last_sign_in_at timestamptz,
-  is_banned boolean,
-  moment_count bigint,
-  checkin_count bigint
-)
-language sql
-security definer
-set search_path = public, auth
-as $$
-  select
-    u.id as user_id,
-    coalesce(u.email, u.phone) as account,
-    p.nickname,
-    u.created_at,
-    u.last_sign_in_at,
-    coalesce(p.is_banned, false) as is_banned,
-    (select count(*) from public.moments m where m.user_id = u.id) as moment_count,
-    (select count(*) from public.plans pl where pl.user_id = u.id and pl.completed = true) as checkin_count
-  from auth.users u
-  left join public.profiles p on p.id = u.id
-  where admin_pin = '2641'
-  order by u.created_at desc;
-$$;
-
-create or replace function public.set_user_ban(target_user_id uuid, banned boolean, admin_pin text default '')
-returns boolean
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if admin_pin <> '2641' then
-    raise exception '管理员密码不正确';
-  end if;
-
-  update public.profiles
-  set is_banned = banned,
-      updated_at = now()
-  where id = target_user_id;
-
-  return true;
-end;
-$$;
-
-alter table public.comments
+alter table if exists public.comments
 add column if not exists emoji text,
 add column if not exists parent_id uuid references public.comments(id) on delete cascade;
 
@@ -206,7 +148,83 @@ create policy "users create own feedback"
 on public.developer_feedback for insert to authenticated
 with check (user_id = auth.uid());
 
-create or replace function public.get_admin_feedback(admin_pin text default '')
+-- Remove old no-argument admin RPCs to avoid PostgREST overload conflicts.
+drop function if exists public.get_admin_stats();
+drop function if exists public.get_admin_users();
+drop function if exists public.get_admin_stats(text);
+drop function if exists public.get_admin_users(text);
+drop function if exists public.set_user_ban(uuid, boolean, text);
+drop function if exists public.get_admin_feedback(text);
+drop function if exists public.reply_developer_feedback(uuid, text, text);
+
+create function public.get_admin_stats(admin_pin text default '')
+returns json
+language sql
+security definer
+set search_path = public, auth
+as $$
+  select case
+    when admin_pin <> '2641' then json_build_object('error', 'invalid admin pin')
+    else json_build_object(
+      'total_users', (select count(*) from auth.users),
+      'today_active_users', (select count(*) from auth.users where last_sign_in_at::date = now()::date),
+      'total_checkins', (select count(*) from public.plans where completed = true),
+      'storage_mb', 0
+    )
+  end;
+$$;
+
+create function public.get_admin_users(admin_pin text default '')
+returns table (
+  user_id uuid,
+  account text,
+  nickname text,
+  created_at timestamptz,
+  last_sign_in_at timestamptz,
+  is_banned boolean,
+  moment_count bigint,
+  checkin_count bigint
+)
+language sql
+security definer
+set search_path = public, auth
+as $$
+  select
+    u.id as user_id,
+    coalesce(u.email, u.phone) as account,
+    p.nickname,
+    u.created_at,
+    u.last_sign_in_at,
+    coalesce(p.is_banned, false) as is_banned,
+    (select count(*) from public.moments m where m.user_id = u.id) as moment_count,
+    (select count(*) from public.plans pl where pl.user_id = u.id and pl.completed = true) as checkin_count
+  from auth.users u
+  left join public.profiles p on p.id = u.id
+  where admin_pin = '2641'
+  order by u.created_at desc;
+$$;
+
+create function public.set_user_ban(target_user_id uuid, banned boolean, admin_pin text default '')
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if admin_pin <> '2641' then
+    raise exception 'invalid admin pin';
+  end if;
+
+  update public.profiles
+  set is_banned = banned,
+      updated_at = now()
+  where id = target_user_id;
+
+  return true;
+end;
+$$;
+
+create function public.get_admin_feedback(admin_pin text default '')
 returns table (
   id uuid,
   user_id uuid,
@@ -241,7 +259,7 @@ as $$
   order by f.created_at desc;
 $$;
 
-create or replace function public.reply_developer_feedback(feedback_id uuid, reply_body text, admin_pin text default '')
+create function public.reply_developer_feedback(feedback_id uuid, reply_body text, admin_pin text default '')
 returns boolean
 language plpgsql
 security definer
@@ -249,7 +267,7 @@ set search_path = public
 as $$
 begin
   if admin_pin <> '2641' then
-    raise exception '管理员密码不正确';
+    raise exception 'invalid admin pin';
   end if;
 
   update public.developer_feedback
